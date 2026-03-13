@@ -8,8 +8,8 @@ def test_root_serves_full_validation_ui(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "Phase 1 - Full Stack Demo" in response.text
-    assert "Global Context" in response.text
-    assert "ReactDOM.createRoot" in response.text
+    assert "/static/legacy_ui/app.jsx" in response.text
+    assert "@babel/standalone" in response.text
 
 
 @pytest.mark.functional

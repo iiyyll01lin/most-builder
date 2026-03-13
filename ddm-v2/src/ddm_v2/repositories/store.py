@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
+import tempfile
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+import fcntl
 
 from ddm_v2.schemas import AuditAction
 from ddm_v2.seeds import build_default_state
@@ -14,19 +20,57 @@ from ddm_v2.seeds import build_default_state
 class JsonStore:
     def __init__(self, db_path: Path):
         self.db_path = db_path
+        self.lock_path = db_path.with_suffix(f"{db_path.suffix}.lock")
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.lock_path.parent.mkdir(parents=True, exist_ok=True)
         self.state = build_default_state()
         self.load()
 
+    @contextmanager
+    def _exclusive_lock(self):
+        with self.lock_path.open("a+", encoding="utf-8") as handle:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+    def _write_state_locked(self) -> None:
+        payload = json.dumps(self.state, ensure_ascii=False, indent=2)
+        temp_path: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile("w", delete=False, dir=self.db_path.parent, encoding="utf-8") as handle:
+                handle.write(payload)
+                handle.flush()
+                os.fsync(handle.fileno())
+                temp_path = handle.name
+            os.replace(temp_path, self.db_path)
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
+
+    def _recover_from_corruption(self) -> None:
+        timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
+        corrupt_path = self.db_path.with_name(f"{self.db_path.stem}.corrupt-{timestamp}{self.db_path.suffix}")
+        shutil.move(self.db_path, corrupt_path)
+        self.state = build_default_state()
+        self._write_state_locked()
+
     def load(self) -> None:
-        if not self.db_path.exists():
-            self.save()
-            return
-        payload = json.loads(self.db_path.read_text(encoding="utf-8"))
-        self.state = payload
+        with self._exclusive_lock():
+            if not self.db_path.exists():
+                self._write_state_locked()
+                return
+            try:
+                payload = json.loads(self.db_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                self._recover_from_corruption()
+                return
+            self.state = payload
 
     def save(self) -> None:
-        self.db_path.write_text(json.dumps(self.state, ensure_ascii=False, indent=2), encoding="utf-8")
+        with self._exclusive_lock():
+            self._write_state_locked()
 
     def reset(self) -> None:
         self.state = build_default_state()

@@ -41,6 +41,8 @@ Open the full validation UI at `http://127.0.0.1:8000`.
 
 If you only want the lightweight API smoke-test console, open `http://127.0.0.1:8000/control-console`.
 
+The validation UI is now split into a shell page plus external legacy assets under `src/ddm_v2/static/legacy_ui/`, with the root path serving `validation_shell.html` instead of a single embedded HTML file.
+
 ## Demo Accounts
 
 - Manager: `admin` / `admin123`
@@ -76,7 +78,7 @@ ddm-v2/
 │   ├── api/routes/        # HTTP endpoints
 │   ├── repositories/      # JSON persistence abstraction
 │   ├── services/          # domain logic
-│   ├── static/            # lightweight control console
+│   ├── static/            # validation shell, legacy UI assets, and control console
 │   ├── main.py            # FastAPI app factory
 │   ├── schemas.py         # Pydantic schemas and enums
 │   └── seeds.py           # default seed data
@@ -93,3 +95,15 @@ ddm-v2/
 - Tests inject a temporary database path through the app factory so each run is isolated.
 - The persistence layer is intentionally file-based in this release candidate to keep deployment simple while the domain model stabilizes.
 - The root path now serves the legacy-compatible validation UI so workflow checks can be performed against the rebuilt backend.
+
+## Runtime Configuration
+
+These environment variables are supported for deployment hardening:
+
+- `DDM_SECRET_KEY`: JWT signing secret.
+- `DDM_DB_PATH`: runtime database file path.
+- `DDM_DATA_DIR`: base data directory when `DDM_DB_PATH` is not set.
+- `DDM_CORS_ALLOW_ORIGINS`: comma-separated allowed origins.
+- `DDM_CORS_ALLOW_METHODS`: comma-separated allowed HTTP methods.
+- `DDM_CORS_ALLOW_HEADERS`: comma-separated allowed headers.
+- `DDM_CORS_ALLOW_CREDENTIALS`: `true` or `false`.

@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Any
 
 from ddm_v2.schemas import MOSTBreakdown, MOSTCalculateResponse, MOSTStep
-from ddm_v2.settings import TMU_FACTOR
+from ddm_v2.settings import get_settings
 
 
 ACTION_CODE_MAP = {
@@ -53,6 +53,7 @@ def _as_int(value: Any, default: int = 0) -> int:
 
 
 def _derive_tmu(step: MOSTStep) -> int:
+    tmu_factor = get_settings().tmu_factor
     action_key = (step.primary_action or step.action or "").strip().lower()
     if action_key in FIXED_ACTION_TMU:
         return FIXED_ACTION_TMU[action_key]
@@ -63,7 +64,7 @@ def _derive_tmu(step: MOSTStep) -> int:
         return max(base, 1)
 
     if params.get("X_time_seconds"):
-        return round(float(params["X_time_seconds"]) / TMU_FACTOR)
+        return round(float(params["X_time_seconds"]) / tmu_factor)
     base = sum(_as_int(params.get(key), 0) for key in ("A1", "B1", "G", "M", "X", "I", "A3"))
     return max(base, 1)
 
@@ -115,6 +116,7 @@ def infer_glove(object_category: str | None, explicit_glove: str | None = None) 
 
 
 def calculate_workflow(steps: list[MOSTStep]) -> MOSTCalculateResponse:
+    tmu_factor = get_settings().tmu_factor
     total_tmu = 0
     simo_groups: dict[str, list[int]] = defaultdict(list)
     collaborative_effective_tmu = 0
@@ -157,9 +159,9 @@ def calculate_workflow(steps: list[MOSTStep]) -> MOSTCalculateResponse:
         )
 
     simo_max_tmu = max((max(values) for values in simo_groups.values()), default=None)
-    simo_seconds = round(simo_max_tmu * TMU_FACTOR, 2) if simo_max_tmu is not None else None
-    total_seconds = round(total_tmu * TMU_FACTOR, 2)
-    collaborative_effective_seconds = round(collaborative_effective_tmu * TMU_FACTOR, 2)
+    simo_seconds = round(simo_max_tmu * tmu_factor, 2) if simo_max_tmu is not None else None
+    total_seconds = round(total_tmu * tmu_factor, 2)
+    collaborative_effective_seconds = round(collaborative_effective_tmu * tmu_factor, 2)
 
     return MOSTCalculateResponse(
         total_tmu=total_tmu,
