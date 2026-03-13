@@ -43,6 +43,10 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     def root() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
 
+    @app.get("/control-console")
+    def control_console() -> FileResponse:
+        return FileResponse(STATIC_DIR / "control_console.html")
+
     return app
 
 

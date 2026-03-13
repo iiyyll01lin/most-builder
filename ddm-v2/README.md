@@ -37,7 +37,9 @@ cd ddm-v2
 uvicorn ddm_v2.main:app --reload --app-dir src
 ```
 
-Open the app at `http://127.0.0.1:8000`.
+Open the full validation UI at `http://127.0.0.1:8000`.
+
+If you only want the lightweight API smoke-test console, open `http://127.0.0.1:8000/control-console`.
 
 ## Demo Accounts
 
@@ -90,3 +92,4 @@ ddm-v2/
 - The runtime database is stored at `ddm-v2/data/runtime-db.json` when the app runs normally.
 - Tests inject a temporary database path through the app factory so each run is isolated.
 - The persistence layer is intentionally file-based in this release candidate to keep deployment simple while the domain model stabilizes.
+- The root path now serves the legacy-compatible validation UI so workflow checks can be performed against the rebuilt backend.

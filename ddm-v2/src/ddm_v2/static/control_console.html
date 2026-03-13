@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDM v2 Control Console</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">DDM v2</p>
+      <h1>Release-Candidate Control Console</h1>
+      <p class="lede">A modular rebuild of the legacy industrial engineering platform, exposing health, auth, master-data, SOP, level-system, and simulation workflows from a single control surface.</p>
+    </section>
+
+    <section class="panel grid two-up">
+      <div>
+        <h2>Login</h2>
+        <form id="login-form" class="stack">
+          <label>
+            Username
+            <input id="username" name="username" value="engineer1">
+          </label>
+          <label>
+            Password
+            <input id="password" name="password" type="password" value="eng123">
+          </label>
+          <button type="submit">Sign In</button>
+        </form>
+        <p id="login-status" class="muted"></p>
+      </div>
+      <div>
+        <h2>Quick Actions</h2>
+        <div class="stack">
+          <button id="health-btn" type="button">Fetch Health</button>
+          <button id="projects-btn" type="button">Load Projects</button>
+          <button id="versions-btn" type="button">Load SOP Versions</button>
+          <button id="db-btn" type="button">Load DB Status</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Response</h2>
+      <pre id="output">Ready.</pre>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

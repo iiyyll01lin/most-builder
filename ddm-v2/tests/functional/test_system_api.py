@@ -4,6 +4,23 @@ import pytest
 
 
 @pytest.mark.functional
+def test_root_serves_full_validation_ui(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Phase 1 - Full Stack Demo" in response.text
+    assert "Global Context" in response.text
+    assert "ReactDOM.createRoot" in response.text
+
+
+@pytest.mark.functional
+def test_control_console_route_remains_available(client):
+    response = client.get("/control-console")
+    assert response.status_code == 200
+    assert "Release-Candidate Control Console" in response.text
+    assert 'id="login-form"' in response.text
+
+
+@pytest.mark.functional
 def test_health_and_db_status_endpoints(client, manager_headers):
     health = client.get("/api/v1/health")
     assert health.status_code == 200
