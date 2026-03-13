@@ -1,0 +1,133 @@
+:root {
+  --bg: #0c1417;
+  --panel: rgba(15, 32, 39, 0.88);
+  --edge: rgba(133, 202, 163, 0.24);
+  --text: #edf7f2;
+  --muted: #97b0a5;
+  --accent: #9fe870;
+  --accent-2: #ffd26a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(159, 232, 112, 0.14), transparent 34%),
+    radial-gradient(circle at top right, rgba(255, 210, 106, 0.16), transparent 28%),
+    linear-gradient(160deg, #081013 0%, #102026 48%, #0e171c 100%);
+}
+
+.shell {
+  width: min(1100px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 48px 0 64px;
+}
+
+.hero {
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--accent);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+h1,
+h2,
+p,
+pre {
+  margin-top: 0;
+}
+
+h1 {
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  line-height: 0.95;
+  margin-bottom: 16px;
+}
+
+.lede,
+.muted {
+  color: var(--muted);
+}
+
+.panel {
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--edge);
+  border-radius: 24px;
+  background: var(--panel);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.grid {
+  display: grid;
+  gap: 20px;
+}
+
+.two-up {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+input,
+button {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(237, 247, 242, 0.14);
+  font: inherit;
+}
+
+input {
+  padding: 0 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+button {
+  padding: 0 16px;
+  color: #07100f;
+  background: linear-gradient(135deg, var(--accent) 0%, #c6ff8d 100%);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+pre {
+  overflow: auto;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.24);
+  color: #d8efe5;
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: min(100vw - 20px, 100%);
+    padding-top: 28px;
+  }
+  .panel {
+    padding: 18px;
+  }
+}

@@ -1,0 +1,350 @@
+from __future__ import annotations
+
+from datetime import datetime
+from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class UserRole(str, Enum):
+    manager = "Manager"
+    engineer = "Engineer"
+    operator = "Operator"
+
+
+class SkillLevel(str, Enum):
+    novice = "Novice"
+    proficient = "Proficient"
+    expert = "Expert"
+
+
+class SOPStatus(str, Enum):
+    draft = "Draft"
+    reviewed = "Reviewed"
+    published = "Published"
+
+
+class AuditAction(str, Enum):
+    create = "CREATE"
+    update = "UPDATE"
+    delete = "DELETE"
+    review = "REVIEW"
+    publish = "PUBLISH"
+    reset = "RESET"
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class UserSummary(BaseModel):
+    id: str
+    username: str
+    role: UserRole
+    name: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserSummary
+
+
+class SimpleCatalogEntry(BaseModel):
+    id: str | None = None
+    name: str
+
+
+class SyntaxEntry(BaseModel):
+    id: str | None = None
+    action_verb: str
+    code_most: str
+    parameter_range: str
+    tmu_value: int = Field(ge=0)
+
+
+class ComponentEntry(BaseModel):
+    id: str | None = None
+    name_cn: str
+    name_en: str
+    category: str
+
+
+class ToolEntry(BaseModel):
+    id: str | None = None
+    name: str
+    spec: str
+    bit: str | None = None
+
+
+class LocationEntry(BaseModel):
+    id: str | None = None
+    name: str
+
+
+class ObjectEntry(BaseModel):
+    id: str | None = None
+    name: str
+    category: str
+    sub_category: str | None = None
+    glove_type: str | None = None
+    ctq: bool = False
+
+
+class EmployeeEntry(BaseModel):
+    id: str | None = None
+    name: str
+    station_type: str
+    skill_level: SkillLevel
+    efficiency_factor: float = Field(ge=0.5, le=1.5)
+
+
+class StationEntry(BaseModel):
+    id: str
+    name: str
+    employee_id: str | None = None
+
+
+class GloveCheckRequest(BaseModel):
+    object_name: str | None = None
+    object_category: str | None = None
+    action: str | None = None
+
+
+class GloveCheckResponse(BaseModel):
+    glove_type: str | None
+    matched_rule_id: str | None = None
+    object_category: str | None = None
+
+
+class MINamingValidationRequest(BaseModel):
+    fields: dict[str, str | None] = Field(default_factory=dict)
+
+
+class MINamingValidationResponse(BaseModel):
+    is_valid: bool
+    errors: list[str]
+    suggested_name: str | None = None
+
+
+class LevelNode(BaseModel):
+    action_id: str
+    tag: str
+
+
+class LevelSystemValidateRequest(BaseModel):
+    nodes: list[LevelNode]
+
+
+class LevelSystemValidateResponse(BaseModel):
+    is_valid: bool
+    errors: list[str]
+
+
+class LevelEntryUpdate(BaseModel):
+    action_id: str
+    difficulty_factor: float = Field(default=1.0, ge=0.5, le=3.0)
+    number_tag: str | None = None
+    number_count: int | None = Field(default=None, ge=1)
+    main_seq: str | None = None
+    order_seq: str | None = None
+    cub_group: str | None = None
+    machine_count: int = Field(default=1, ge=1)
+    operator_count: int = Field(default=1, ge=1)
+    status_label: str | None = None
+    sort_order: int | None = Field(default=None, ge=0)
+
+
+class LevelEntryResponse(BaseModel):
+    id: str
+    action_id: str
+    row_no: int
+    description: str
+    ct_seconds: float
+    frequency: int = 1
+    difficulty_factor: float
+    adjusted_ct: float
+    number_tag: str | None = None
+    number_count: int | None = None
+    main_seq: str | None = None
+    order_seq: str | None = None
+    cub_group: str | None = None
+    machine_count: int = 1
+    operator_count: int = 1
+    status_label: str | None = None
+    effective_cub_ct: float | None = None
+    sort_order: int | None = None
+
+
+class LevelSystemSaveRequest(BaseModel):
+    project_id: str
+    entries: list[LevelEntryUpdate]
+
+
+class LevelSystemSyncRequest(BaseModel):
+    project_id: str
+    sop_version_id: str | None = None
+
+
+class OperatorTime(BaseModel):
+    employee_id: str | None = None
+    individual_tmu: int | None = None
+
+
+class MOSTStep(BaseModel):
+    action: str
+    object: str | None = None
+    seq_type: str = "GENERAL"
+    hand: str | None = None
+    object_category: str | None = None
+    from_location: str | None = None
+    to_location: str | None = None
+    reference_point: str | None = None
+    primary_action: str | None = None
+    glove_type: str | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+    frequency: int = 1
+    is_simo: bool = False
+    return_a_cm: float = 0.0
+    is_collaborative: bool = False
+    operator_count: int = 1
+    operators: list[OperatorTime] = Field(default_factory=list)
+
+
+class MOSTCalculateRequest(BaseModel):
+    steps: list[MOSTStep]
+
+
+class MOSTBreakdown(BaseModel):
+    action: str
+    object: str
+    tmu: int
+    code: str
+    seq_type: str
+    hand: str | None = None
+    glove_type: str | None = None
+    object_category: str | None = None
+    from_location: str | None = None
+    to_location: str | None = None
+    frequency: int = 1
+    is_simo: bool = False
+    index_string: str | None = None
+    auto_sentence: str | None = None
+    is_collaborative: bool = False
+    operator_count: int = 1
+    effective_tmu: int | None = None
+
+
+class MOSTCalculateResponse(BaseModel):
+    total_tmu: int
+    total_seconds: float
+    breakdown: list[MOSTBreakdown]
+    simo_max_tmu: int | None = None
+    simo_seconds: float | None = None
+    collaborative_effective_tmu: int | None = None
+    collaborative_effective_seconds: float | None = None
+
+
+class SOPAction(BaseModel):
+    id: str | None = None
+    seq_type: str
+    description: str
+    tmu: int
+    seconds: float
+    params: dict[str, Any] = Field(default_factory=dict)
+    station_id: str | None = None
+    component: str | None = None
+    tool: str | None = None
+    image_url: str | None = None
+    is_ctq: bool = False
+    primary_action: str | None = None
+    hand: str | None = None
+    object_category: str | None = None
+    glove_type: str | None = None
+    frequency: int = 1
+    level_tag: str | None = None
+    is_simo: bool = False
+    simo_group_id: str | None = None
+
+
+class SOPVersion(BaseModel):
+    id: str | None = None
+    project_id: str
+    version_no: str
+    status: SOPStatus = SOPStatus.draft
+    actions: list[SOPAction] = Field(default_factory=list)
+    created_by: str | None = None
+    created_at: datetime | None = None
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
+    published_by: str | None = None
+    published_at: datetime | None = None
+
+
+class SOPCreateRequest(BaseModel):
+    project_id: str
+    version_no: str
+    actions: list[SOPAction] = Field(default_factory=list)
+
+
+class SOPUpdateStatusRequest(BaseModel):
+    status: SOPStatus
+    comment: str | None = None
+
+
+class StationAssignment(BaseModel):
+    id: str
+    sop_ids: list[str] = Field(default_factory=list)
+    employee_id: str
+
+
+class LineBalanceRequest(BaseModel):
+    project_id: str
+    stations: list[StationAssignment]
+    takt_time: float
+
+
+class StationResult(BaseModel):
+    id: str
+    name: str
+    operator: str
+    skill_level: SkillLevel
+    efficiency_factor: float
+    standard_time: float
+    actual_time: float
+    actions: list[dict[str, Any]]
+    is_overloaded: bool
+    required_gloves: list[str] = Field(default_factory=list)
+    ctq_actions: list[str] = Field(default_factory=list)
+    ion_fan_required: bool = False
+    ion_fan_targets: list[str] = Field(default_factory=list)
+
+
+class LineBalanceResponse(BaseModel):
+    bottleneck_station: str
+    cycle_time: float
+    uph: int
+    balance_rate: float
+    alerts: list[str]
+    station_results: list[StationResult]
+
+
+class ActionReassignRequest(BaseModel):
+    action_id: str
+    from_station_id: str
+    to_station_id: str
+
+
+class AuditLogEntry(BaseModel):
+    id: str
+    timestamp: datetime
+    user_id: str
+    user_name: str
+    action: AuditAction
+    entity_type: str
+    entity_id: str
+    description: str
+    old_value: dict[str, Any] | None = None
+    new_value: dict[str, Any] | None = None
