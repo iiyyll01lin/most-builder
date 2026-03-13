@@ -1,0 +1,50 @@
+{
+  "steps": [
+    {
+      "action": "Grab",
+      "primary_action": "Grab",
+      "object": "Screw",
+      "object_category": "Fastener",
+      "seq_type": "GENERAL",
+      "hand": "Right Hand",
+      "from_location": "Component Bin",
+      "to_location": "Chassis",
+      "params": {
+        "A1": 1,
+        "B1": 0,
+        "G": 3,
+        "A2": 1,
+        "B2": 0,
+        "P": 3,
+        "A3": 1
+      },
+      "frequency": 2
+    },
+    {
+      "action": "Inspect",
+      "primary_action": "Inspect",
+      "object": "Motherboard",
+      "object_category": "PCB",
+      "seq_type": "CONTROLLED",
+      "hand": "Right Hand",
+      "from_location": "Fixture",
+      "to_location": "Fixture",
+      "params": {
+        "A1": 1,
+        "B1": 0,
+        "G": 1,
+        "M": 10,
+        "X": 0,
+        "I": 6,
+        "A3": 1
+      },
+      "frequency": 1
+    }
+  ],
+  "expected": {
+    "total_tmu": 37,
+    "total_seconds": 1.33,
+    "first_index_string": "A1 B0 G3 A1 B0 P3 A1",
+    "second_auto_sentence": "Right Hand Inspect Motherboard from Fixture to Fixture"
+  }
+}

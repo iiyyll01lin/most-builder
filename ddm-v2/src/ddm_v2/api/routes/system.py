@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Response
 from ddm_v2.api.dependencies import get_current_user, get_store, require_roles
 from ddm_v2.repositories.store import JsonStore
 from ddm_v2.schemas import AuditAction, UserRole
-from ddm_v2.settings import APP_VERSION, DB_PATH
+from ddm_v2.settings import APP_VERSION
 
 
 router = APIRouter(prefix="/api/v1", tags=["system"])
@@ -46,12 +46,13 @@ def health():
 
 @router.get("/db/status")
 def db_status(store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    exists = DB_PATH.exists()
+    db_path = store.db_path
+    exists = db_path.exists()
     return {
-        "persistent_file": str(DB_PATH),
+        "persistent_file": str(db_path),
         "file_exists": exists,
-        "file_size_bytes": DB_PATH.stat().st_size if exists else 0,
-        "last_modified": datetime.fromtimestamp(DB_PATH.stat().st_mtime, tz=UTC).isoformat() if exists else None,
+        "file_size_bytes": db_path.stat().st_size if exists else 0,
+        "last_modified": datetime.fromtimestamp(db_path.stat().st_mtime, tz=UTC).isoformat() if exists else None,
         "collections": {key: len(value) if isinstance(value, list) else len(value) for key, value in store.state.items() if isinstance(value, (list, dict))},
     }
 
@@ -59,13 +60,13 @@ def db_status(store: JsonStore = Depends(get_store), _: dict = Depends(get_curre
 @router.post("/db/save")
 def db_save(store: JsonStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
     store.save()
-    return {"status": "success", "message": "Database saved", "path": str(DB_PATH)}
+    return {"status": "success", "message": "Database saved", "path": str(store.db_path)}
 
 
 @router.post("/db/load")
 def db_load(store: JsonStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
     store.load()
-    return {"status": "success", "message": "Database loaded", "path": str(DB_PATH)}
+    return {"status": "success", "message": "Database loaded", "path": str(store.db_path)}
 
 
 @router.get("/db/export")
