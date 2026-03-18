@@ -1,4 +1,5 @@
         import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+        import { createPortal } from 'react-dom';
         const API_BASE = window.DDM_API_BASE || "/api/v1";
         const MOST_PANEL_MIN_HEIGHTS = [0, 0, 0];
         const MOST_PANEL_KEYS = ['builder', 'list', 'mi'];
@@ -866,7 +867,7 @@
                         </div>
                     )
                 );
-                return ReactDOM.createPortal(menuContent, document.body);
+                return createPortal(menuContent, document.body);
             };
 
             return (
