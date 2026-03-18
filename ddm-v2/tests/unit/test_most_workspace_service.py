@@ -51,3 +51,5 @@ def test_build_workspace_snapshot_includes_most_trace_and_component_totals():
     assert snapshot["actions"][0]["params"]["_most"]["index_string"] == "A1 B0 G3 A1 B0 P3 A1"
     assert snapshot["wi_components"][0]["total_tmu"] == sum(step["tmu"] for step in snapshot["steps"])
     assert snapshot["wi_components"][0]["step_count"] == 2
+    assert snapshot["mi_sentences"][0]["text"]
+    assert snapshot["mi_sentences"][0]["most_code"] == "G"

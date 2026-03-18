@@ -34,3 +34,4 @@ def test_workspace_export_retains_index_string_and_trace(client, engineer_header
     payload = exported.json()
     assert payload["steps"][0]["index_string"] == "A1 B0 G3 A1 B0 P3 A1"
     assert payload["actions"][0]["params"]["_most"]["most_code"] == "G"
+    assert payload["mi_sentences"][0]["index_string"] == "A1 B0 G3 A1 B0 P3 A1"

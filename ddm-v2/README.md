@@ -12,7 +12,7 @@ DDM v2 covers these functional areas:
 - SOP versioning and action editing
 - level-system synchronization, editing, and graph generation
 - line-balance simulation and history
-- audit logging and JSON-backed persistence
+- audit logging and SQLite-backed persistence
 
 ## Prerequisites
 
@@ -37,11 +37,19 @@ cd ddm-v2
 uvicorn ddm_v2.main:app --reload --app-dir src
 ```
 
+Build the validation frontend bundle before opening the root UI:
+
+```bash
+cd ddm-v2/frontend
+npm install
+npm run build
+```
+
 Open the full validation UI at `http://127.0.0.1:8000`.
 
 If you only want the lightweight API smoke-test console, open `http://127.0.0.1:8000/control-console`.
 
-The validation UI is now split into a shell page plus external legacy assets under `src/ddm_v2/static/legacy_ui/`, with the root path serving `validation_shell.html` instead of a single embedded HTML file.
+The validation UI is now served through a buildable React/Vite frontend in `frontend/`, which compiles into `src/ddm_v2/static/frontend-build/`. The original extracted UI logic remains in `src/ddm_v2/static/legacy_ui/app.jsx`, but it is now bundled instead of executed through Babel/UMD/CDN scripts.
 
 ## Demo Accounts
 
@@ -72,13 +80,14 @@ PYTHONPATH=src pytest -q -m regression
 
 ```text
 ddm-v2/
-├── data/                  # runtime JSON persistence output
+├── data/                  # runtime SQLite database output
 ├── docs/                  # English and Chinese specifications
+├── frontend/              # Vite/Tailwind frontend build project
 ├── src/ddm_v2/
 │   ├── api/routes/        # HTTP endpoints
-│   ├── repositories/      # JSON persistence abstraction
+│   ├── repositories/      # SQLite persistence abstraction
 │   ├── services/          # domain logic
-│   ├── static/            # validation shell, legacy UI assets, and control console
+│   ├── static/            # built frontend assets, legacy UI source, and control console
 │   ├── main.py            # FastAPI app factory
 │   ├── schemas.py         # Pydantic schemas and enums
 │   └── seeds.py           # default seed data
@@ -91,10 +100,10 @@ ddm-v2/
 
 ## Notes
 
-- The runtime database is stored at `ddm-v2/data/runtime-db.json` when the app runs normally.
+- The runtime database is stored at `ddm-v2/data/runtime-db.sqlite3` when the app runs normally.
 - Tests inject a temporary database path through the app factory so each run is isolated.
-- The persistence layer is intentionally file-based in this release candidate to keep deployment simple while the domain model stabilizes.
-- The root path now serves the legacy-compatible validation UI so workflow checks can be performed against the rebuilt backend.
+- Existing JSON runtime payloads are migrated into SQLite on first load and preserved as `*.legacy-json.json` backups.
+- The root path now serves the legacy-compatible validation UI through built static assets so workflow checks can be performed without Babel/CDN runtime dependencies.
 
 ## Runtime Configuration
 

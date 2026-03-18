@@ -3,6 +3,11 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+frontend/node_modules/
+frontend/dist/
 data/runtime-db.json
 data/runtime-db.json.lock
 data/*.corrupt-*.json
+data/*.legacy-json.json
+data/runtime-db.sqlite3
+data/runtime-db.sqlite3-*
