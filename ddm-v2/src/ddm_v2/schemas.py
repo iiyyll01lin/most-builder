@@ -247,6 +247,20 @@ class MOSTCalculateResponse(BaseModel):
     collaborative_effective_seconds: float | None = None
 
 
+class MOSTWorkspaceSaveRequest(BaseModel):
+    sop_version_id: str | None = None
+    steps: list[dict[str, Any]] = Field(default_factory=list)
+    wi_components: list[dict[str, Any]] = Field(default_factory=list)
+    selected_step_ids: list[str] = Field(default_factory=list)
+
+
+class MOSTWorkspaceImportRequest(BaseModel):
+    sop_version_id: str | None = None
+    steps: list[dict[str, Any]] = Field(default_factory=list)
+    wiComponents: list[dict[str, Any]] = Field(default_factory=list)
+    selected_step_ids: list[str] = Field(default_factory=list)
+
+
 class SOPAction(BaseModel):
     id: str | None = None
     seq_type: str

@@ -133,6 +133,7 @@ DEFAULT_STATE = {
             "published_at": None,
         }
     ],
+    "most_workspaces": [],
     "level_entries": {},
     "audit_logs": [],
     "simulation_results": [],

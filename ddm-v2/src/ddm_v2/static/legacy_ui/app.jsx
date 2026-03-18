@@ -2283,12 +2283,36 @@
                 showToast('已建立 WI 動作元件（可在右側 MI 區拖拉排序）', 'success');
             }, [selectedComposerStepIds, mostSteps, mostForm.key_parts, mostForm.main_name, showToast]);
 
-            const exportWiComponentsToJson = useCallback(() => {
-                const payload = {
-                    version: 1,
-                    exportedAt: new Date().toISOString(),
-                    wiComponents
-                };
+            const persistMostWorkspace = useCallback(async (overrides = {}, successMessage = '') => {
+                if (!globalProjectId) {
+                    throw new Error('請先在頂部選擇機種與版本');
+                }
+                const response = await protectedFetch(`/most/workspaces/${globalProjectId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        sop_version_id: overrides.sop_version_id !== undefined ? overrides.sop_version_id : globalSopVersionId,
+                        steps: overrides.steps || mostSteps,
+                        wi_components: overrides.wi_components || wiComponents,
+                        selected_step_ids: overrides.selected_step_ids || selectedComposerStepIds
+                    })
+                });
+                if (Array.isArray(response.steps)) {
+                    setMostSteps(response.steps);
+                }
+                if (Array.isArray(response.wi_components)) {
+                    setWiComponents(response.wi_components);
+                }
+                if (Array.isArray(response.selected_step_ids)) {
+                    setSelectedComposerStepIds(response.selected_step_ids);
+                }
+                if (successMessage) {
+                    showToast(successMessage, 'success');
+                }
+                return response;
+            }, [globalProjectId, globalSopVersionId, mostSteps, wiComponents, selectedComposerStepIds, protectedFetch, showToast]);
+
+            const exportWiComponentsToJson = useCallback(async () => {
+                const payload = await persistMostWorkspace({}, '已同步最新 WI/MOST 工作區');
                 const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -2298,27 +2322,30 @@
                 a.click();
                 a.remove();
                 URL.revokeObjectURL(url);
-            }, [wiComponents]);
+            }, [persistMostWorkspace]);
 
             const importWiComponentsFromFile = useCallback(async (file) => {
                 if (!file) return;
                 try {
                     const text = await file.text();
                     const parsed = JSON.parse(text);
-                    const imported = Array.isArray(parsed) ? parsed : parsed.wiComponents;
-                    if (!Array.isArray(imported)) throw new Error('Invalid JSON');
-                    setWiComponents(imported.map((c, idx) => ({
-                        id: c.id || `wi-import-${Date.now()}-${idx}`,
-                        name: c.name || 'WI',
-                        key_parts: c.key_parts || '',
-                        stepIds: Array.isArray(c.stepIds) ? c.stepIds : [],
-                        createdAt: c.createdAt || new Date().toISOString()
-                    })));
-                    showToast('已載入 WI JSON', 'success');
+                    const response = await protectedFetch(`/most/workspaces/${globalProjectId}/import`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            sop_version_id: parsed.sop_version_id || globalSopVersionId,
+                            steps: Array.isArray(parsed.steps) ? parsed.steps : mostSteps,
+                            wiComponents: Array.isArray(parsed) ? parsed : (Array.isArray(parsed.wiComponents) ? parsed.wiComponents : []),
+                            selected_step_ids: Array.isArray(parsed.selected_step_ids) ? parsed.selected_step_ids : []
+                        })
+                    });
+                    setMostSteps(Array.isArray(response.steps) ? response.steps : []);
+                    setWiComponents(Array.isArray(response.wi_components) ? response.wi_components : []);
+                    setSelectedComposerStepIds(Array.isArray(response.selected_step_ids) ? response.selected_step_ids : []);
+                    showToast('已載入並同步 WI JSON', 'success');
                 } catch (e) {
                     showToast(`載入失敗：${e.message}`, 'error');
                 }
-            }, [showToast]);
+            }, [globalProjectId, globalSopVersionId, mostSteps, protectedFetch, showToast]);
 
             const getMiFieldKey = useCallback((rule) => {
                 if (!rule) return '';
@@ -2788,9 +2815,16 @@
                     setGlobalProjectId(defaultProjectId);
                     setGlobalSopVersionId(defaultVersionId);
                     if (defaultProjectId) {
+                        const workspace = await protectedFetch(`/most/workspaces/${defaultProjectId}` + (defaultVersionId ? `?sop_version_id=${encodeURIComponent(defaultVersionId)}` : ''));
+                        setMostSteps(Array.isArray(workspace.steps) ? workspace.steps : []);
+                        setWiComponents(Array.isArray(workspace.wi_components) ? workspace.wi_components : []);
+                        setSelectedComposerStepIds(Array.isArray(workspace.selected_step_ids) ? workspace.selected_step_ids : []);
                         await loadLevelEntries(defaultProjectId);
                     } else {
                         setLevelEntries([]);
+                        setMostSteps([]);
+                        setWiComponents([]);
+                        setSelectedComposerStepIds([]);
                     }
                     setAuditLogs(audits);
                     // Load DB persistence status
@@ -3204,24 +3238,11 @@
                 }
                 
                 try {
-                    const actions = mostSteps.map((step, idx) => ({
-                        id: step.id || `act-${Date.now()}-${idx}`,
-                        seq_type: step.seq_type,
-                        description: step.auto_sentence || `${step.hand} ${step.action || '操作'} ${step.object}`,
-                        tmu: mostStepMetrics[step.id]?.tmu || 0,
-                        seconds: mostStepMetrics[step.id]?.seconds || 0,
-                        frequency: step.frequency || 1,
-                        params: step.params,
-                        station_id: 'ST-3-1a',
-                        component: step.object,
-                        tool: '無',
-                        is_ctq: step.is_ctq || false,
-                        primary_action: step.action || '操作',
-                        hand: step.hand,
-                        object_category: step.object_category,
-                        glove_type: step.glove_type,
-                        level_tag: ''
-                    }));
+                    const workspace = await persistMostWorkspace({ sop_version_id: sopVersion.id }, '已同步 MOST workspace');
+                    const actions = Array.isArray(workspace.actions) ? workspace.actions.map(action => ({
+                        ...action,
+                        station_id: action.station_id || 'ST-3-1a'
+                    })) : [];
                     
                     await protectedFetch(`/sop/versions/${sopVersion.id}/actions`, {
                         method: 'PUT',
@@ -3261,11 +3282,15 @@
                 try {
                     const nextVersionId = pickDefaultSopVersionId(nextProjectId, sopVersions);
                     setGlobalSopVersionId(nextVersionId);
+                    const workspace = await protectedFetch(`/most/workspaces/${nextProjectId}` + (nextVersionId ? `?sop_version_id=${encodeURIComponent(nextVersionId)}` : ''));
+                    setMostSteps(Array.isArray(workspace.steps) ? workspace.steps : []);
+                    setWiComponents(Array.isArray(workspace.wi_components) ? workspace.wi_components : []);
+                    setSelectedComposerStepIds(Array.isArray(workspace.selected_step_ids) ? workspace.selected_step_ids : []);
                     await loadLevelEntries(nextProjectId);
                 } finally {
                     setGlobalContextLoading(false);
                 }
-            }, [sopVersions, loadLevelEntries]);
+            }, [sopVersions, loadLevelEntries, protectedFetch]);
 
             const handleGlobalVersionChange = useCallback((versionId) => {
                 setGlobalSopVersionId(versionId || null);

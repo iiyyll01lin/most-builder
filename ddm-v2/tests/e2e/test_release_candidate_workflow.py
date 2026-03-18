@@ -52,30 +52,45 @@ def test_end_to_end_engineering_workflow(client, engineer_headers, manager_heade
     assert version.status_code == 201
     sop_id = version.json()["id"]
 
-    actions = []
-    for index, item in enumerate(breakdown, start=1):
-        actions.append(
-            {
-                "id": f"act-e2e-{index}",
-                "seq_type": item["seq_type"],
-                "description": item["auto_sentence"],
-                "tmu": item["tmu"],
-                "seconds": round(item["tmu"] * 0.036, 2),
-                "params": {"seed": index},
-                "station_id": f"ST-{index}",
-                "component": item["object"],
-                "tool": "Torque Driver",
-                "is_ctq": True,
-                "primary_action": item["action"],
-                "hand": item["hand"],
-                "object_category": item["object_category"],
-                "glove_type": item["glove_type"],
-                "frequency": item["frequency"],
-            }
-        )
+    workspace = client.put(
+        f"/api/v1/most/workspaces/{project_id}",
+        headers=engineer_headers,
+        json={
+            "sop_version_id": sop_id,
+            "steps": [
+                {
+                    "id": f"step-e2e-{index}",
+                    "action": item["action"],
+                    "primary_action": item["action"],
+                    "object": item["object"],
+                    "object_category": item["object_category"],
+                    "seq_type": item["seq_type"],
+                    "hand": item["hand"],
+                    "from_location": item["from_location"],
+                    "to_location": item["to_location"],
+                    "params": {"seed": index},
+                    "frequency": item["frequency"],
+                    "is_ctq": True,
+                    "tool": "Torque Driver",
+                    "station_id": f"ST-{index}",
+                }
+                for index, item in enumerate(breakdown, start=1)
+            ],
+            "wi_components": [
+                {"id": "wi-e2e", "name": "E2E WI", "stepIds": [f"step-e2e-{index}" for index in range(1, len(breakdown) + 1)]}
+            ],
+            "selected_step_ids": ["step-e2e-1"],
+        },
+    )
+    assert workspace.status_code == 200
+
+    actions = workspace.json()["actions"]
+    for index, action in enumerate(actions, start=1):
+        action["station_id"] = f"ST-{index}"
 
     save_actions = client.put(f"/api/v1/sop/versions/{sop_id}/actions", headers=engineer_headers, json=actions)
     assert save_actions.status_code == 200
+    assert save_actions.json()["actions"][0]["params"]["_most"]["index_string"]
 
     sync = client.post("/api/v1/level-system/sync", headers=engineer_headers, json={"project_id": project_id, "sop_version_id": sop_id})
     assert sync.status_code == 200

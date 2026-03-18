@@ -1,0 +1,156 @@
+from __future__ import annotations
+
+from copy import deepcopy
+from datetime import UTC, datetime
+from typing import Any
+
+from ddm_v2.schemas import MOSTStep
+from ddm_v2.services.most_service import calculate_workflow
+
+
+MOST_STEP_KEYS = {
+    "action",
+    "object",
+    "seq_type",
+    "hand",
+    "object_category",
+    "from_location",
+    "to_location",
+    "reference_point",
+    "primary_action",
+    "glove_type",
+    "params",
+    "frequency",
+    "is_simo",
+    "return_a_cm",
+    "is_collaborative",
+    "operator_count",
+    "operators",
+}
+
+
+def _as_most_step(raw_step: dict[str, Any]) -> MOSTStep:
+    payload = {key: deepcopy(raw_step.get(key)) for key in MOST_STEP_KEYS if key in raw_step}
+    payload.setdefault("params", {})
+    payload.setdefault("seq_type", "GENERAL")
+    payload["frequency"] = max(int(payload.get("frequency") or 1), 1)
+    payload["is_simo"] = bool(payload.get("is_simo"))
+    payload["return_a_cm"] = float(payload.get("return_a_cm") or 0.0)
+    payload["is_collaborative"] = bool(payload.get("is_collaborative"))
+    payload["operator_count"] = max(int(payload.get("operator_count") or 1), 1)
+    payload["operators"] = list(payload.get("operators") or [])
+    return MOSTStep(**payload)
+
+
+def _normalize_step(raw_step: dict[str, Any], index: int) -> dict[str, Any]:
+    step = deepcopy(raw_step)
+    step_id = str(step.get("id") or f"step-{index + 1}")
+    step["id"] = step_id
+    step["frequency"] = max(int(step.get("frequency") or 1), 1)
+    step["is_simo"] = bool(step.get("is_simo"))
+    step["is_ctq"] = bool(step.get("is_ctq"))
+    step["seq_type"] = str(step.get("seq_type") or "GENERAL")
+    step["params"] = deepcopy(step.get("params") or {})
+    step["component"] = step.get("component") or step.get("object")
+    step["tool"] = step.get("tool") or "無"
+    return step
+
+
+def build_workspace_snapshot(
+    project_id: str,
+    sop_version_id: str | None,
+    raw_steps: list[dict[str, Any]],
+    raw_wi_components: list[dict[str, Any]],
+    selected_step_ids: list[str] | None = None,
+    workspace_id: str | None = None,
+) -> dict[str, Any]:
+    normalized_steps = [_normalize_step(step, index) for index, step in enumerate(raw_steps)]
+    result = calculate_workflow([_as_most_step(step) for step in normalized_steps])
+    actions: list[dict[str, Any]] = []
+    step_lookup: dict[str, dict[str, Any]] = {}
+
+    for index, step in enumerate(normalized_steps):
+        metric = result.breakdown[index]
+        step["most_code"] = metric.code
+        step["index_string"] = metric.index_string
+        step["auto_sentence"] = metric.auto_sentence
+        step["tmu"] = metric.tmu
+        step["seconds"] = round(metric.tmu * 0.036, 2)
+        step["glove_type"] = metric.glove_type
+        step["component"] = step.get("component") or metric.object
+        step_lookup[step["id"]] = step
+        actions.append(
+            {
+                "id": str(step.get("action_id") or f"act-{step['id']}"),
+                "seq_type": metric.seq_type,
+                "description": step.get("description") or metric.auto_sentence,
+                "tmu": metric.tmu,
+                "seconds": round(metric.tmu * 0.036, 2),
+                "params": {
+                    **deepcopy(step.get("params") or {}),
+                    "_most": {
+                        "project_id": project_id,
+                        "sop_version_id": sop_version_id,
+                        "step_id": step["id"],
+                        "most_code": metric.code,
+                        "index_string": metric.index_string,
+                        "auto_sentence": metric.auto_sentence,
+                        "reference_point": step.get("reference_point"),
+                        "from_location": metric.from_location,
+                        "to_location": metric.to_location,
+                        "is_collaborative": metric.is_collaborative,
+                        "operator_count": metric.operator_count,
+                    },
+                },
+                "station_id": step.get("station_id"),
+                "component": step.get("component") or metric.object,
+                "tool": step.get("tool") or "無",
+                "image_url": step.get("image_url"),
+                "is_ctq": bool(step.get("is_ctq")),
+                "primary_action": step.get("primary_action") or metric.action,
+                "hand": metric.hand,
+                "object_category": metric.object_category,
+                "glove_type": metric.glove_type,
+                "frequency": metric.frequency,
+                "level_tag": step.get("level_tag") or "",
+                "is_simo": metric.is_simo,
+                "simo_group_id": step.get("simo_group_id"),
+            }
+        )
+
+    wi_components: list[dict[str, Any]] = []
+    for index, component in enumerate(raw_wi_components):
+        step_ids = [str(step_id) for step_id in component.get("stepIds") or [] if str(step_id) in step_lookup]
+        linked_steps = [step_lookup[step_id] for step_id in step_ids]
+        total_tmu = sum(int(step.get("tmu") or 0) for step in linked_steps)
+        total_seconds = round(sum(float(step.get("seconds") or 0) for step in linked_steps), 2)
+        wi_components.append(
+            {
+                "id": str(component.get("id") or f"wi-{index + 1}"),
+                "name": component.get("name") or "WI",
+                "key_parts": component.get("key_parts") or "",
+                "stepIds": step_ids,
+                "createdAt": component.get("createdAt") or datetime.now(UTC).isoformat(),
+                "total_tmu": total_tmu,
+                "total_seconds": total_seconds,
+                "step_count": len(linked_steps),
+            }
+        )
+
+    return {
+        "id": workspace_id,
+        "project_id": project_id,
+        "sop_version_id": sop_version_id,
+        "saved_at": datetime.now(UTC).isoformat(),
+        "version": 1,
+        "steps": normalized_steps,
+        "wi_components": wi_components,
+        "selected_step_ids": [str(step_id) for step_id in (selected_step_ids or [])],
+        "summary": {
+            "total_tmu": result.total_tmu,
+            "total_seconds": result.total_seconds,
+            "step_count": len(normalized_steps),
+            "component_count": len(wi_components),
+        },
+        "actions": actions,
+    }
