@@ -8,8 +8,8 @@ def test_root_serves_full_validation_ui(client):
     response = client.get("/")
     assert response.status_code == 200
     assert "Phase 1 - Full Stack Demo" in response.text
-    assert "/static/frontend-build/app.js" in response.text
-    assert "@babel/standalone" not in response.text
+    assert "/static/legacy_ui/app.jsx" in response.text
+    assert "@babel/standalone" in response.text
 
 
 @pytest.mark.functional
@@ -30,12 +30,6 @@ def test_health_and_db_status_endpoints(client, manager_headers):
     assert status.status_code == 200
     assert status.json()["file_exists"] is True
     assert status.json()["persistent_file"] == str(client.app.state.store.db_path)
-
-
-@pytest.mark.functional
-def test_frontend_build_assets_are_served(client):
-    shell = client.get("/")
-    assert "/static/frontend-build/app.js" in shell.text
 
 
 @pytest.mark.functional

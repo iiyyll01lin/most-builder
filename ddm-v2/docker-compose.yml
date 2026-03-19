@@ -1,0 +1,23 @@
+services:
+  ddm-v2:
+    build:
+      context: .
+    image: ddm-v2:202603-rc1
+    container_name: ddm-v2
+    restart: unless-stopped
+    ports:
+      - "${DDM_PORT:-8000}:8000"
+    environment:
+      DDM_ROOT_DIR: /app
+      DDM_DATA_DIR: /app/data
+      DDM_DB_PATH: /app/data/runtime-db.json
+      DDM_SECRET_KEY: ${DDM_SECRET_KEY:-ddm-v2-release-candidate-202603-rc1-secure-key}
+      DDM_CORS_ALLOW_ORIGINS: ${DDM_CORS_ALLOW_ORIGINS:-http://127.0.0.1:8000,http://localhost:8000}
+      DDM_CORS_ALLOW_METHODS: ${DDM_CORS_ALLOW_METHODS:-GET,POST,PUT,DELETE}
+      DDM_CORS_ALLOW_HEADERS: ${DDM_CORS_ALLOW_HEADERS:-Authorization,Content-Type}
+      DDM_CORS_ALLOW_CREDENTIALS: ${DDM_CORS_ALLOW_CREDENTIALS:-true}
+    volumes:
+      - ddm-v2-data:/app/data
+
+volumes:
+  ddm-v2-data:

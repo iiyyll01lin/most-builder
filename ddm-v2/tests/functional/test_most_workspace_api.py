@@ -36,12 +36,10 @@ def test_most_workspace_roundtrip_export_and_import(client, engineer_headers):
     saved = save.json()
     assert saved["actions"][0]["params"]["_most"]["most_code"] == "G"
     assert saved["wi_components"][0]["total_seconds"] > 0
-    assert saved["mi_sentences"][0]["text"]
 
     exported = client.get("/api/v1/most/workspaces/proj-atlas/export?sop_version_id=sop-atlas-v1", headers=engineer_headers)
     assert exported.status_code == 200
     assert exported.json()["steps"][0]["index_string"] == "A1 B0 G3 A1 B0 P3 A1"
-    assert exported.json()["mi_sentences"][0]["most_code"] == "G"
 
     imported = client.post(
         "/api/v1/most/workspaces/proj-atlas/import",

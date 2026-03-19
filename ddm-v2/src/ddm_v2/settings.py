@@ -50,7 +50,7 @@ def get_settings() -> Settings:
 	root_dir = Path(os.getenv("DDM_ROOT_DIR", Path(__file__).resolve().parents[2])).resolve()
 	data_dir = _resolve_path(os.getenv("DDM_DATA_DIR"), root_dir / "data", root_dir)
 	static_dir = _resolve_path(os.getenv("DDM_STATIC_DIR"), root_dir / "src" / "ddm_v2" / "static", root_dir)
-	db_path = _resolve_path(os.getenv("DDM_DB_PATH"), data_dir / "runtime-db.sqlite3", root_dir)
+	db_path = _resolve_path(os.getenv("DDM_DB_PATH"), data_dir / "runtime-db.json", root_dir)
 	return Settings(
 		root_dir=root_dir,
 		data_dir=data_dir,

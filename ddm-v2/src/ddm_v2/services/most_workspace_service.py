@@ -68,7 +68,6 @@ def build_workspace_snapshot(
     result = calculate_workflow([_as_most_step(step) for step in normalized_steps])
     actions: list[dict[str, Any]] = []
     step_lookup: dict[str, dict[str, Any]] = {}
-    mi_sentences: list[dict[str, Any]] = []
 
     for index, step in enumerate(normalized_steps):
         metric = result.breakdown[index]
@@ -80,28 +79,6 @@ def build_workspace_snapshot(
         step["glove_type"] = metric.glove_type
         step["component"] = step.get("component") or metric.object
         step_lookup[step["id"]] = step
-        mi_sentences.append(
-            {
-                "id": f"mi-{index + 1}",
-                "step_id": step["id"],
-                "sequence_no": index + 1,
-                "text": metric.auto_sentence,
-                "index_string": metric.index_string,
-                "most_code": metric.code,
-                "seq_type": metric.seq_type,
-                "tmu": metric.tmu,
-                "seconds": round(metric.tmu * 0.036, 2),
-                "frequency": metric.frequency,
-                "object": metric.object,
-                "hand": metric.hand,
-                "glove_type": metric.glove_type,
-                "object_category": metric.object_category,
-                "is_ctq": bool(step.get("is_ctq")),
-                "is_simo": metric.is_simo,
-                "from_location": metric.from_location,
-                "to_location": metric.to_location,
-            }
-        )
         actions.append(
             {
                 "id": str(step.get("action_id") or f"act-{step['id']}"),
@@ -175,6 +152,5 @@ def build_workspace_snapshot(
             "step_count": len(normalized_steps),
             "component_count": len(wi_components),
         },
-        "mi_sentences": mi_sentences,
         "actions": actions,
     }

@@ -1,5 +1,4 @@
-        import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-        import { createPortal } from 'react-dom';
+        const { useState, useEffect, useCallback, useMemo, useRef } = React;
         const API_BASE = window.DDM_API_BASE || "/api/v1";
         const MOST_PANEL_MIN_HEIGHTS = [0, 0, 0];
         const MOST_PANEL_KEYS = ['builder', 'list', 'mi'];
@@ -867,7 +866,7 @@
                         </div>
                     )
                 );
-                return createPortal(menuContent, document.body);
+                return ReactDOM.createPortal(menuContent, document.body);
             };
 
             return (
@@ -2324,29 +2323,6 @@
                 a.remove();
                 URL.revokeObjectURL(url);
             }, [persistMostWorkspace]);
-
-            const exportMiSentencesToJson = useCallback(async () => {
-                const snapshot = await persistMostWorkspace({}, '已同步最新 MI 語句');
-                const payload = {
-                    version: snapshot.version,
-                    exported_at: new Date().toISOString(),
-                    project_id: snapshot.project_id,
-                    sop_version_id: snapshot.sop_version_id,
-                    suggested_name: miSuggestedName || null,
-                    export_file_name: `${miExportFileName}__mi_sentences`,
-                    summary: snapshot.summary,
-                    mi_sentences: Array.isArray(snapshot.mi_sentences) ? snapshot.mi_sentences : []
-                };
-                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${miExportFileName}__mi_sentences.json`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-            }, [persistMostWorkspace, miSuggestedName, miExportFileName]);
 
             const importWiComponentsFromFile = useCallback(async (file) => {
                 if (!file) return;
@@ -4337,7 +4313,7 @@
                                                                     onClick={exportWiComponentsToJson}
                                                                     className="rounded-lg border border-slate-700 px-3 py-1.5 text-[11px] text-slate-200 hover:border-blue-400"
                                                                 >
-                                                                    匯出 WI JSON
+                                                                    匯出 JSON
                                                                 </button>
                                                                 <label className="rounded-lg border border-slate-700 px-3 py-1.5 text-[11px] text-slate-200 hover:border-blue-400 cursor-pointer">
                                                                     匯入 JSON
@@ -4420,15 +4396,6 @@
                                                             <div className="text-slate-500 text-[11px]">SIMO 最大值</div>
                                                             <div className="text-lg font-semibold text-cyan-300">{mostResult?.simo_max_tmu ?? '—'}</div>
                                                         </div>
-                                                    </div>
-                                                    <div className="flex items-center justify-end">
-                                                        <button
-                                                            type="button"
-                                                            onClick={exportMiSentencesToJson}
-                                                            className="rounded-lg border border-emerald-700 px-3 py-1.5 text-[11px] text-emerald-200 hover:border-emerald-400"
-                                                        >
-                                                            匯出 MI JSON
-                                                        </button>
                                                     </div>
                                                     <div className="flex-1 overflow-auto mt-1">
                                                         {mostSteps.length > 0 ? (
@@ -5618,4 +5585,4 @@
             );
         }
 
-        export default App;
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);

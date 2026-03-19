@@ -9,17 +9,17 @@ DEFAULT_STATE = {
     "users": {
         "admin": {
             "id": "usr-admin",
-            "username": "admin",
-            "password": "admin123",
+            "username": "Avery",
+            "password": "Avery",
             "role": UserRole.manager.value,
             "name": "System Manager",
         },
         "engineer1": {
             "id": "usr-eng-1",
-            "username": "engineer1",
-            "password": "eng123",
+            "username": "Avery",
+            "password": "Avery",
             "role": UserRole.engineer.value,
-            "name": "Lead Engineer",
+            "name": "Avery, Yeh",
         },
         "operator1": {
             "id": "usr-op-1",
