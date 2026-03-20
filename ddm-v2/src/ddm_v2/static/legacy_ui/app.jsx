@@ -1810,13 +1810,26 @@
             );
         };
 
+        const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+            reader.onerror = () => reject(new Error('圖片讀取失敗'));
+            reader.readAsDataURL(file);
+        });
+
         // ------------- SOP Step Image Upload -------------
         const SopStepImage = ({ actionId, imageUrl, onImageChange }) => {
-            const handleFileSelect = (e) => {
+            const handleFileSelect = async (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    const url = URL.createObjectURL(file);
-                    onImageChange && onImageChange(actionId, url);
+                    try {
+                        const url = await readFileAsDataUrl(file);
+                        onImageChange && onImageChange(actionId, url);
+                    } catch (err) {
+                        window.alert(err.message || '圖片讀取失敗');
+                    } finally {
+                        e.target.value = '';
+                    }
                 }
             };
 
@@ -1872,7 +1885,7 @@
                                 {/* Image attachment */}
                                 <SopStepImage 
                                     actionId={act.id} 
-                                    imageUrl={stepImages[act.id]} 
+                                    imageUrl={stepImages[act.id] || act.image_url} 
                                     onImageChange={onImageChange} 
                                 />
                             </div>
@@ -1904,10 +1917,30 @@
         );
 
         // ------------- Export helpers -------------
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
         const exportTable = (title, rows, options = {}) => {
             const docTitle = options.fileName?.trim() || title;
             const win = window.open('', '_blank');
-            win.document.write('<!DOCTYPE html><title>' + docTitle + '</title><body><h2>' + title + '</h2><pre>' + rows + '</pre><scr' + 'ipt>window.print();</scr' + 'ipt></body>');
+            const bodyHtml = options.htmlContent || ('<h2>' + escapeHtml(title) + '</h2><pre>' + escapeHtml(rows) + '</pre>');
+            win.document.write(
+                '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + escapeHtml(docTitle) + '</title>' +
+                '<style>' +
+                'body{font-family:Arial,sans-serif;padding:32px;color:#0f172a;}h2{margin:0 0 20px;}pre{white-space:pre-wrap;line-height:1.6;}' +
+                '.sop-export{display:flex;flex-direction:column;gap:16px;}.sop-export__meta{margin-bottom:20px;color:#334155;font-size:14px;}' +
+                '.sop-export__card{border:1px solid #cbd5e1;border-radius:14px;padding:16px;page-break-inside:avoid;background:#fff;}' +
+                '.sop-export__header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px;}' +
+                '.sop-export__title{font-size:16px;font-weight:700;}.sop-export__time{font-size:13px;color:#475569;white-space:nowrap;}' +
+                '.sop-export__tags{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0;padding:0;list-style:none;font-size:12px;color:#334155;}' +
+                '.sop-export__tag{padding:4px 8px;border-radius:999px;background:#e2e8f0;}.sop-export__image{margin-top:14px;}' +
+                '.sop-export__image img{max-width:100%;max-height:280px;border-radius:12px;border:1px solid #cbd5e1;object-fit:contain;}' +
+                '</style></head><body>' + bodyHtml + '<scr' + 'ipt>window.print();</scr' + 'ipt></body></html>'
+            );
             win.document.close();
         };
 
@@ -2726,9 +2759,47 @@
                 return sanitized || 'SOP_Export';
             }, [miSuggestedName, selectedProject, selectedSop]);
 
-            const handleStepImageChange = (actionId, url) => {
+            const handleStepImageChange = async (actionId, url) => {
                 setStepImages(prev => ({ ...prev, [actionId]: url }));
+                if (!selectedSop?.id) {
+                    return;
+                }
+                const previousActions = Array.isArray(selectedSop.actions) ? selectedSop.actions : [];
+                const updatedActions = previousActions.map(action => (
+                    action.id === actionId ? { ...action, image_url: url } : action
+                ));
+                setSopVersions(prev => prev.map(version => (
+                    version.id === selectedSop.id ? { ...version, actions: updatedActions } : version
+                )));
+                try {
+                    await protectedFetch(`/sop/versions/${selectedSop.id}/actions`, {
+                        method: 'PUT',
+                        body: JSON.stringify(updatedActions)
+                    });
+                } catch (err) {
+                    setSopVersions(prev => prev.map(version => (
+                        version.id === selectedSop.id ? { ...version, actions: previousActions } : version
+                    )));
+                    setStepImages(prev => {
+                        const next = { ...prev };
+                        const fallbackUrl = previousActions.find(action => action.id === actionId)?.image_url;
+                        if (fallbackUrl) next[actionId] = fallbackUrl;
+                        else delete next[actionId];
+                        return next;
+                    });
+                    showToast(`SOP 圖片儲存失敗: ${err.message}`, 'error');
+                }
             };
+
+            useEffect(() => {
+                const nextImages = {};
+                (selectedSop?.actions || []).forEach(action => {
+                    if (action.image_url) {
+                        nextImages[action.id] = action.image_url;
+                    }
+                });
+                setStepImages(nextImages);
+            }, [selectedSop]);
 
             const loadBootstrap = useCallback(async () => {
                 if (!token) return;
@@ -2819,7 +2890,7 @@
                         setMostSteps(Array.isArray(workspace.steps) ? workspace.steps : []);
                         setWiComponents(Array.isArray(workspace.wi_components) ? workspace.wi_components : []);
                         setSelectedComposerStepIds(Array.isArray(workspace.selected_step_ids) ? workspace.selected_step_ids : []);
-                        await loadLevelEntries(defaultProjectId);
+                        await loadLevelEntries(defaultProjectId, defaultVersionId);
                     } else {
                         setLevelEntries([]);
                         setMostSteps([]);
@@ -3069,18 +3140,23 @@
             };
 
             // ============ Level System Functions ============
-            const loadLevelEntries = useCallback(async (projectId) => {
+            const loadLevelEntries = useCallback(async (projectId, sopVersionId = globalSopVersionId) => {
                 if (!projectId) return;
                 setLevelLoading(true);
                 setLevelSaveStatus(null);
                 try {
+                    const requestBody = { project_id: projectId };
+                    if (sopVersionId) {
+                        requestBody.sop_version_id = sopVersionId;
+                    }
+                    const query = sopVersionId ? `?sop_version_id=${encodeURIComponent(sopVersionId)}` : '';
                     // First sync to ensure all MOST actions are in level system
                     await protectedFetch('/level-system/sync', {
                         method: 'POST',
-                        body: JSON.stringify({ project_id: projectId })
+                        body: JSON.stringify(requestBody)
                     });
                     // Then load entries
-                    const result = await protectedFetch(`/level-system/${projectId}`);
+                    const result = await protectedFetch(`/level-system/${projectId}${query}`);
                     const normalized = (result.entries || []).map((entry, idx) => ({
                         ...entry,
                         row_no: idx + 1,
@@ -3094,7 +3170,7 @@
                 } finally {
                     setLevelLoading(false);
                 }
-            }, [protectedFetch]);
+            }, [protectedFetch, globalSopVersionId]);
 
             const handleLevelEntryChange = (actionId, field, value) => {
                 setLevelEntries(prev => prev.map(entry => {
@@ -3165,11 +3241,11 @@
                     }));
                     await protectedFetch('/level-system/save', {
                         method: 'POST',
-                        body: JSON.stringify({ project_id: globalProjectId, entries })
+                        body: JSON.stringify({ project_id: globalProjectId, sop_version_id: globalSopVersionId, entries })
                     });
                     setLevelSaveStatus({ success: true, message: '上傳成功！' });
                     // Reload to get fresh data
-                    await loadLevelEntries(globalProjectId);
+                    await loadLevelEntries(globalProjectId, globalSopVersionId);
                 } catch (err) {
                     setLevelSaveStatus({ success: false, message: '上傳失敗: ' + err.message });
                 } finally {
@@ -3258,7 +3334,7 @@
                     try {
                         await protectedFetch('/level-system/sync', {
                             method: 'POST',
-                            body: JSON.stringify({ project_id: projectId })
+                            body: JSON.stringify({ project_id: projectId, sop_version_id: sopVersion.id })
                         });
                     } catch (syncErr) {
                         console.warn('Level System 同步警告:', syncErr);
@@ -3286,15 +3362,29 @@
                     setMostSteps(Array.isArray(workspace.steps) ? workspace.steps : []);
                     setWiComponents(Array.isArray(workspace.wi_components) ? workspace.wi_components : []);
                     setSelectedComposerStepIds(Array.isArray(workspace.selected_step_ids) ? workspace.selected_step_ids : []);
-                    await loadLevelEntries(nextProjectId);
+                    await loadLevelEntries(nextProjectId, nextVersionId);
                 } finally {
                     setGlobalContextLoading(false);
                 }
             }, [sopVersions, loadLevelEntries, protectedFetch]);
 
-            const handleGlobalVersionChange = useCallback((versionId) => {
-                setGlobalSopVersionId(versionId || null);
-            }, []);
+            const handleGlobalVersionChange = useCallback(async (versionId) => {
+                const nextVersionId = versionId || null;
+                setGlobalSopVersionId(nextVersionId);
+                if (!globalProjectId) {
+                    return;
+                }
+                setGlobalContextLoading(true);
+                try {
+                    const workspace = await protectedFetch(`/most/workspaces/${globalProjectId}` + (nextVersionId ? `?sop_version_id=${encodeURIComponent(nextVersionId)}` : ''));
+                    setMostSteps(Array.isArray(workspace.steps) ? workspace.steps : []);
+                    setWiComponents(Array.isArray(workspace.wi_components) ? workspace.wi_components : []);
+                    setSelectedComposerStepIds(Array.isArray(workspace.selected_step_ids) ? workspace.selected_step_ids : []);
+                    await loadLevelEntries(globalProjectId, nextVersionId);
+                } finally {
+                    setGlobalContextLoading(false);
+                }
+            }, [globalProjectId, loadLevelEntries, protectedFetch]);
 
             const handleDragStart = (event, action) => {
                 setDragPayload(action);
@@ -3551,9 +3641,40 @@
 
             const exportSopAsPdf = () => {
                 if (!selectedSop) return;
-                const rows = selectedSop.actions.map((a, i) => `${i + 1}. ${a.description} (${a.seconds}s)`);
                 const heading = selectedSop.version_no ? `SOP ${selectedSop.version_no}` : 'SOP 匯出';
-                exportTable(heading, rows.join('\n'), { fileName: miExportFileName });
+                const actionCards = selectedSop.actions.map((action, index) => {
+                    const imageUrl = stepImages[action.id] || action.image_url || '';
+                    const tags = [
+                        action.seq_type,
+                        action.station_id ? `站別: ${action.station_id}` : '',
+                        action.component ? `元件: ${action.component}` : '',
+                        action.tool ? `工具: ${action.tool}` : '',
+                        action.level_tag ? `Level: ${action.level_tag}` : '',
+                        action.is_ctq ? 'CTQ' : '',
+                        `TMU: ${action.tmu}`,
+                        `次數: ×${action.frequency ? action.frequency : 1}`
+                    ].filter(Boolean);
+                    return `
+                        <article class="sop-export__card">
+                            <div class="sop-export__header">
+                                <div>
+                                    <div class="sop-export__title">${index + 1}. ${escapeHtml(action.description || '')}</div>
+                                </div>
+                                <div class="sop-export__time">${escapeHtml(action.seconds)}s</div>
+                            </div>
+                            <ul class="sop-export__tags">${tags.map(tag => `<li class="sop-export__tag">${escapeHtml(tag)}</li>`).join('')}</ul>
+                            ${imageUrl ? `<div class="sop-export__image"><img src="${escapeHtml(imageUrl)}" alt="Step ${index + 1}" /></div>` : ''}
+                        </article>
+                    `;
+                }).join('');
+                const htmlContent = `
+                    <section class="sop-export">
+                        <h2>${escapeHtml(heading)}</h2>
+                        <div class="sop-export__meta">Project: ${escapeHtml(selectedProject?.name || selectedProject?.id || '')}</div>
+                        ${actionCards}
+                    </section>
+                `;
+                exportTable(heading, '', { fileName: miExportFileName, htmlContent });
             };
 
             const exportLineReport = () => {
@@ -4504,7 +4625,7 @@
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <button 
-                                            onClick={() => globalProjectId && loadLevelEntries(globalProjectId)}
+                                            onClick={() => globalProjectId && loadLevelEntries(globalProjectId, globalSopVersionId)}
                                             disabled={!globalProjectId || levelLoading}
                                             className="px-4 py-2 rounded-lg border border-blue-600 bg-blue-600/20 text-blue-300 text-sm disabled:opacity-40"
                                         >

@@ -17,9 +17,17 @@ router = APIRouter(prefix="/api/v1/simulation", tags=["simulation"])
 def simulate(payload: LineBalanceRequest, store: JsonStore = Depends(get_store), user: dict = Depends(get_current_user)):
     stations = []
     station_lookup = {station["id"]: station for station in store.list_collection("stations")}
+    default_employee_id = store.list_collection("employees")[0]["id"] if store.list_collection("employees") else None
     for assignment in payload.stations:
         station = station_lookup.get(assignment.id, {"id": assignment.id, "name": assignment.id})
-        stations.append({"id": assignment.id, "name": station["name"], "employee_id": assignment.employee_id})
+        stations.append(
+            {
+                "id": assignment.id,
+                "name": station["name"],
+                "employee_id": assignment.employee_id or station.get("employee_id") or default_employee_id,
+                "sop_ids": list(assignment.sop_ids or []),
+            }
+        )
     result = run_line_balance(
         project_id=payload.project_id,
         takt_time=payload.takt_time,

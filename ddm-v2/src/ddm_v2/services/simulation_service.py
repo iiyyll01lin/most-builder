@@ -14,18 +14,28 @@ def run_line_balance(
     glove_rules: list[dict],
     ion_fan_bindings: list[dict],
 ) -> LineBalanceResponse:
+    selected_sop_ids = {
+        sop_id
+        for assignment in station_assignments
+        for sop_id in assignment.get("sop_ids", [])
+        if sop_id
+    }
     relevant_sops = [version for version in sop_versions if version["project_id"] == project_id]
+    if selected_sop_ids:
+        relevant_sops = [version for version in relevant_sops if version["id"] in selected_sop_ids]
     all_actions = [deepcopy(action) for version in relevant_sops for action in version.get("actions", [])]
     employee_map = {employee["id"]: employee for employee in employees}
+    default_employee = employees[0] if employees else None
     station_results: list[StationResult] = []
     alerts: list[str] = []
     total_actual_time = 0.0
     cycle_time = 0.0
 
     for station in station_assignments:
-        employee = employee_map.get(station["employee_id"])
+        employee_id = station.get("employee_id") or (default_employee.get("id") if default_employee else None)
+        employee = employee_map.get(employee_id) if employee_id else None
         if employee is None:
-            alerts.append(f"Employee {station['employee_id']} not found for station {station['id']}.")
+            alerts.append(f"Employee {station.get('employee_id')} not found for station {station['id']}.")
             continue
 
         station_actions = [action for action in all_actions if action.get("station_id") == station["id"]]

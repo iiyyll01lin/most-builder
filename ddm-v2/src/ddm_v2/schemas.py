@@ -180,6 +180,7 @@ class LevelEntryResponse(BaseModel):
 
 class LevelSystemSaveRequest(BaseModel):
     project_id: str
+    sop_version_id: str | None = None
     entries: list[LevelEntryUpdate]
 
 
@@ -311,7 +312,7 @@ class SOPUpdateStatusRequest(BaseModel):
 class StationAssignment(BaseModel):
     id: str
     sop_ids: list[str] = Field(default_factory=list)
-    employee_id: str
+    employee_id: str | None = None
 
 
 class LineBalanceRequest(BaseModel):

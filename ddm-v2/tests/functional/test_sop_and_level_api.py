@@ -55,7 +55,7 @@ def test_sop_action_update_sync_level_and_generate_graph(client, engineer_header
     assert sync.status_code == 200
     assert sync.json()["total_entries"] == 2
 
-    level_entries = client.get("/api/v1/level-system/proj-orion", headers=engineer_headers)
+    level_entries = client.get(f"/api/v1/level-system/proj-orion?sop_version_id={sop_id}", headers=engineer_headers)
     assert level_entries.status_code == 200
     entries = level_entries.json()["entries"]
     assert len(entries) == 2
@@ -65,6 +65,7 @@ def test_sop_action_update_sync_level_and_generate_graph(client, engineer_header
         headers=engineer_headers,
         json={
             "project_id": "proj-orion",
+            "sop_version_id": sop_id,
             "entries": [
                 {"action_id": entries[0]["action_id"], "difficulty_factor": 1.1, "main_seq": "1", "machine_count": 1, "operator_count": 1},
                 {"action_id": entries[1]["action_id"], "difficulty_factor": 1.0, "main_seq": "2", "cub_group": "C1", "machine_count": 2, "operator_count": 1},
@@ -72,12 +73,104 @@ def test_sop_action_update_sync_level_and_generate_graph(client, engineer_header
         },
     )
     assert save.status_code == 200
+    assert save.json()["sop_version_id"] == sop_id
 
-    graph = client.post("/api/v1/level-system/generate-graph?project_id=proj-orion", headers=engineer_headers)
+    graph = client.post(f"/api/v1/level-system/generate-graph?project_id=proj-orion&sop_version_id={sop_id}", headers=engineer_headers)
     assert graph.status_code == 200
     graph_payload = graph.json()
     assert len(graph_payload["nodes"]) == 2
     assert graph_payload["precedence_edges"][0]["type"] == "main"
+
+
+@pytest.mark.functional
+def test_level_entries_are_version_scoped_and_save_propagates_to_sop(client, engineer_headers):
+    create_v1 = client.post(
+        "/api/v1/sop/versions",
+        headers=engineer_headers,
+        json={"project_id": "proj-atlas", "version_no": "V3.1", "actions": []},
+    )
+    assert create_v1.status_code == 201
+    sop_v1 = create_v1.json()["id"]
+
+    create_v2 = client.post(
+        "/api/v1/sop/versions",
+        headers=engineer_headers,
+        json={"project_id": "proj-atlas", "version_no": "V3.2", "actions": []},
+    )
+    assert create_v2.status_code == 201
+    sop_v2 = create_v2.json()["id"]
+
+    actions_v1 = [
+        {
+            "id": "act-v1-main",
+            "seq_type": "GENERAL",
+            "description": "Version 1 action",
+            "tmu": 20,
+            "seconds": 0.72,
+            "params": {"A1": 1, "B1": 0, "G": 3, "A2": 1, "B2": 0, "P": 3, "A3": 1},
+            "station_id": "ST-1",
+            "component": "Screw",
+            "tool": "Driver",
+        }
+    ]
+    actions_v2 = [
+        {
+            "id": "act-v2-main",
+            "seq_type": "GENERAL",
+            "description": "Version 2 action",
+            "tmu": 30,
+            "seconds": 1.08,
+            "params": {"A1": 3, "B1": 0, "G": 3, "A2": 3, "B2": 0, "P": 3, "A3": 1},
+            "station_id": "ST-1",
+            "component": "Motherboard",
+            "tool": "Fixture",
+        }
+    ]
+
+    assert client.put(f"/api/v1/sop/versions/{sop_v1}/actions", headers=engineer_headers, json=actions_v1).status_code == 200
+    assert client.put(f"/api/v1/sop/versions/{sop_v2}/actions", headers=engineer_headers, json=actions_v2).status_code == 200
+
+    sync_v1 = client.post("/api/v1/level-system/sync", headers=engineer_headers, json={"project_id": "proj-atlas", "sop_version_id": sop_v1})
+    assert sync_v1.status_code == 200
+    sync_v2 = client.post("/api/v1/level-system/sync", headers=engineer_headers, json={"project_id": "proj-atlas", "sop_version_id": sop_v2})
+    assert sync_v2.status_code == 200
+
+    entries_v1 = client.get(f"/api/v1/level-system/proj-atlas?sop_version_id={sop_v1}", headers=engineer_headers)
+    entries_v2 = client.get(f"/api/v1/level-system/proj-atlas?sop_version_id={sop_v2}", headers=engineer_headers)
+    assert entries_v1.status_code == 200
+    assert entries_v2.status_code == 200
+    assert entries_v1.json()["entries"][0]["action_id"] == "act-v1-main"
+    assert entries_v2.json()["entries"][0]["action_id"] == "act-v2-main"
+
+    save_v1 = client.post(
+        "/api/v1/level-system/save",
+        headers=engineer_headers,
+        json={
+            "project_id": "proj-atlas",
+            "sop_version_id": sop_v1,
+            "entries": [
+                {
+                    "action_id": "act-v1-main",
+                    "difficulty_factor": 1.3,
+                    "main_seq": "1",
+                    "order_seq": "2",
+                    "machine_count": 1,
+                    "operator_count": 1,
+                }
+            ],
+        },
+    )
+    assert save_v1.status_code == 200
+
+    sop_v1_detail = client.get(f"/api/v1/sop/versions/{sop_v1}", headers=engineer_headers)
+    sop_v2_detail = client.get(f"/api/v1/sop/versions/{sop_v2}", headers=engineer_headers)
+    assert sop_v1_detail.status_code == 200
+    assert sop_v2_detail.status_code == 200
+    v1_action = sop_v1_detail.json()["actions"][0]
+    v2_action = sop_v2_detail.json()["actions"][0]
+    assert v1_action["level_tag"] == "1.2"
+    assert v1_action["params"]["_level"]["difficulty_factor"] == 1.3
+    assert v2_action.get("level_tag") in {None, ""}
 
 
 @pytest.mark.functional

@@ -98,3 +98,90 @@ def test_workspace_actions_can_be_saved_into_sop_with_trace_fields(client, engin
     action = update.json()["actions"][0]
     assert action["params"]["_most"]["most_code"] == "I"
     assert action["params"]["_most"]["step_id"] == "step-ctl"
+
+
+@pytest.mark.functional
+def test_level_save_propagates_into_matching_most_workspace(client, engineer_headers):
+    create_sop = client.post(
+        "/api/v1/sop/versions",
+        headers=engineer_headers,
+        json={"project_id": "proj-orion", "version_no": "V5", "actions": []},
+    )
+    assert create_sop.status_code == 201
+    sop_id = create_sop.json()["id"]
+
+    update_actions = client.put(
+        f"/api/v1/sop/versions/{sop_id}/actions",
+        headers=engineer_headers,
+        json=[
+            {
+                "id": "sync-act-1",
+                "seq_type": "GENERAL",
+                "description": "Install bracket",
+                "tmu": 20,
+                "seconds": 0.72,
+                "params": {"A1": 1, "B1": 0, "G": 3, "A2": 1, "B2": 0, "P": 3, "A3": 1},
+                "station_id": "ST-01",
+            }
+        ],
+    )
+    assert update_actions.status_code == 200
+
+    workspace_save = client.put(
+        "/api/v1/most/workspaces/proj-orion",
+        headers=engineer_headers,
+        json={
+            "sop_version_id": sop_id,
+            "steps": [
+                {
+                    "id": "sync-act-1",
+                    "action_id": "sync-act-1",
+                    "action": "Install",
+                    "primary_action": "Install",
+                    "object": "Bracket",
+                    "object_category": "Component",
+                    "seq_type": "GENERAL",
+                    "hand": "Right Hand",
+                    "from_location": "Bin",
+                    "to_location": "Fixture",
+                    "params": {"A1": 1, "B1": 0, "G": 3, "A2": 1, "B2": 0, "P": 3, "A3": 1},
+                    "frequency": 1,
+                }
+            ],
+            "wi_components": [],
+            "selected_step_ids": ["sync-act-1"],
+        },
+    )
+    assert workspace_save.status_code == 200
+
+    sync_level = client.post(
+        "/api/v1/level-system/sync",
+        headers=engineer_headers,
+        json={"project_id": "proj-orion", "sop_version_id": sop_id},
+    )
+    assert sync_level.status_code == 200
+
+    save_level = client.post(
+        "/api/v1/level-system/save",
+        headers=engineer_headers,
+        json={
+            "project_id": "proj-orion",
+            "sop_version_id": sop_id,
+            "entries": [
+                {
+                    "action_id": "sync-act-1",
+                    "difficulty_factor": 1.2,
+                    "main_seq": "3",
+                    "operator_count": 1,
+                    "machine_count": 1,
+                }
+            ],
+        },
+    )
+    assert save_level.status_code == 200
+
+    workspace = client.get(f"/api/v1/most/workspaces/proj-orion?sop_version_id={sop_id}", headers=engineer_headers)
+    assert workspace.status_code == 200
+    action = workspace.json()["actions"][0]
+    assert action["level_tag"] == "MAIN-3"
+    assert action["params"]["_level"]["difficulty_factor"] == 1.2
