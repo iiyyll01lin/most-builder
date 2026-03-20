@@ -12,6 +12,13 @@ from ddm_v2.schemas import AuditAction, SOPCreateRequest, SOPStatus, SOPUpdateSt
 router = APIRouter(prefix="/api/v1/sop", tags=["sop"])
 
 
+ALLOWED_STATUS_TRANSITIONS: dict[str, set[str]] = {
+    SOPStatus.draft.value: {SOPStatus.reviewed.value, SOPStatus.published.value},
+    SOPStatus.reviewed.value: {SOPStatus.published.value},
+    SOPStatus.published.value: set(),
+}
+
+
 @router.get("/versions")
 def list_versions(project_id: str | None = None, store: JsonStore = Depends(get_store), user: dict = Depends(get_current_user)):
     versions = list(store.list_collection("sop_versions"))
@@ -63,11 +70,14 @@ def update_status(sop_id: str, payload: SOPUpdateStatusRequest, store: JsonStore
     if version is None:
         raise HTTPException(status_code=404, detail="SOP version not found")
     previous = version["status"]
+    target = payload.status.value
+    if target != previous and target not in ALLOWED_STATUS_TRANSITIONS.get(previous, set()):
+        raise HTTPException(status_code=400, detail=f"Invalid SOP status transition: {previous} -> {target}")
     if payload.status == SOPStatus.reviewed and user["role"] == UserRole.operator.value:
         raise HTTPException(status_code=403, detail="Operators cannot review SOPs")
     if payload.status == SOPStatus.published and user["role"] != UserRole.manager.value:
         raise HTTPException(status_code=403, detail="Only managers can publish SOPs")
-    version["status"] = payload.status.value
+    version["status"] = target
     if payload.status == SOPStatus.reviewed:
         version["reviewed_by"] = user["id"]
         version["reviewed_at"] = datetime.now(UTC).isoformat()

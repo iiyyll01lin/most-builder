@@ -156,6 +156,13 @@ def test_sop_status_workflow_enforces_role_and_visibility_rules(client, engineer
     assert published_payload["published_by"] == "usr-admin"
     assert published_payload["published_at"] is not None
 
+    revert_to_draft = client.put(
+        f"/api/v1/sop/versions/{sop_id}/status",
+        headers=manager_headers,
+        json={"status": "Draft"},
+    )
+    assert revert_to_draft.status_code == 400
+
     operator_get_published = client.get(f"/api/v1/sop/versions/{sop_id}", headers=operator_headers)
     assert operator_get_published.status_code == 200
     assert operator_get_published.json()["status"] == "Published"
