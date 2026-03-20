@@ -9,15 +9,15 @@ DEFAULT_STATE = {
     "users": {
         "admin": {
             "id": "usr-admin",
-            "username": "Avery",
-            "password": "Avery",
+            "username": "admin",
+            "password": "admin123",
             "role": UserRole.manager.value,
             "name": "System Manager",
         },
         "engineer1": {
             "id": "usr-eng-1",
-            "username": "Avery",
-            "password": "Avery",
+            "username": "engineer1",
+            "password": "eng123",
             "role": UserRole.engineer.value,
             "name": "Avery, Yeh",
         },

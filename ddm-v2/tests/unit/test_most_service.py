@@ -52,3 +52,56 @@ def test_collaborative_step_uses_max_operator_time_for_effective_time():
 def test_generate_index_string_returns_controlled_sequence_shape():
     index_string = generate_index_string({"A1": 1, "B1": 0, "G": 3, "M": 10, "X": 0, "I": 6, "A3": 3}, "CONTROLLED")
     assert index_string == "A1 B0 G3 M10 X0 I6 A3"
+
+
+@pytest.mark.unit
+def test_controlled_sequence_with_dynamic_x_time_keeps_other_indices_in_total():
+    result = calculate_workflow(
+        [
+            MOSTStep(
+                action="Inspect",
+                object="Motherboard",
+                object_category="PCB",
+                seq_type="CONTROLLED",
+                params={"A1": 1, "B1": 0, "G": 1, "M": 10, "X": 0, "I": 6, "A3": 1, "X_time_seconds": 0.36},
+            )
+        ]
+    )
+
+    assert result.total_tmu == 29
+    assert result.total_seconds == 1.04
+
+
+@pytest.mark.unit
+def test_simo_and_collaborative_summaries_are_reported_together():
+    result = calculate_workflow(
+        [
+            MOSTStep(
+                action="Grab",
+                object="Screw",
+                object_category="Fastener",
+                seq_type="GENERAL",
+                hand="Left Hand",
+                is_simo=True,
+                params={"A1": 1, "B1": 0, "G": 3, "A2": 1, "B2": 0, "P": 3, "A3": 1},
+            ),
+            MOSTStep(
+                action="Place",
+                object="Motherboard",
+                object_category="PCB",
+                seq_type="CONTROLLED",
+                hand="Right Hand",
+                is_simo=True,
+                is_collaborative=True,
+                operator_count=2,
+                operators=[OperatorTime(employee_id="emp-eva", individual_tmu=15), OperatorTime(employee_id="emp-noah", individual_tmu=24)],
+                params={"A1": 1, "B1": 0, "G": 1, "M": 10, "X": 0, "I": 6, "A3": 1},
+            ),
+        ]
+    )
+
+    assert result.total_tmu == 28
+    assert result.simo_max_tmu == 19
+    assert result.simo_seconds == 0.68
+    assert result.collaborative_effective_tmu == 33
+    assert result.collaborative_effective_seconds == 1.19

@@ -63,9 +63,10 @@ def _derive_tmu(step: MOSTStep) -> int:
         base = sum(_as_int(params.get(key), 0) for key in ("A1", "B1", "G", "A2", "B2", "P", "A3"))
         return max(base, 1)
 
+    dynamic_x = 0
     if params.get("X_time_seconds"):
-        return round(float(params["X_time_seconds"]) / tmu_factor)
-    base = sum(_as_int(params.get(key), 0) for key in ("A1", "B1", "G", "M", "X", "I", "A3"))
+        dynamic_x = round(float(params["X_time_seconds"]) / tmu_factor)
+    base = sum(_as_int(params.get(key), 0) for key in ("A1", "B1", "G", "M", "I", "A3")) + (dynamic_x or _as_int(params.get("X"), 0))
     return max(base, 1)
 
 

@@ -38,6 +38,14 @@ def simulate(payload: LineBalanceRequest, store: JsonStore = Depends(get_store),
     })
     store.list_collection("simulation_results").append(snapshot)
     store.save()
+    store.audit(
+        user,
+        AuditAction.create,
+        "simulation-result",
+        snapshot["id"],
+        f"Created line balance simulation for {payload.project_id}",
+        new_value={"project_id": payload.project_id, "station_count": len(payload.stations)},
+    )
     return result
 
 
@@ -73,15 +81,32 @@ def history_detail(sim_id: str, store: JsonStore = Depends(get_store), _: dict =
 
 
 @router.delete("/history/{sim_id}", status_code=204)
-def delete_history(sim_id: str, store: JsonStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
+def delete_history(sim_id: str, store: JsonStore = Depends(get_store), user: dict = Depends(require_roles(UserRole.manager))):
     removed = store.delete_collection_item("simulation_results", sim_id)
     if removed is None:
         raise HTTPException(status_code=404, detail="Simulation result not found")
+    store.audit(
+        user,
+        AuditAction.delete,
+        "simulation-result",
+        sim_id,
+        f"Deleted simulation result {sim_id}",
+        old_value={"project_id": removed.get("project_id"), "timestamp": removed.get("timestamp")},
+    )
     return Response(status_code=204)
 
 
 @router.delete("/history", status_code=204)
-def clear_history(store: JsonStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
+def clear_history(store: JsonStore = Depends(get_store), user: dict = Depends(require_roles(UserRole.manager))):
+    removed_count = len(store.list_collection("simulation_results"))
     store.state["simulation_results"] = []
     store.save()
+    store.audit(
+        user,
+        AuditAction.delete,
+        "simulation-result",
+        "all",
+        "Cleared simulation history",
+        old_value={"removed_count": removed_count},
+    )
     return Response(status_code=204)
