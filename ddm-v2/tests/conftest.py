@@ -18,7 +18,7 @@ def client(tmp_path):
 
 @pytest.fixture
 def engineer_headers(client: TestClient) -> dict[str, str]:
-    response = client.post("/api/v1/auth/login", json={"username": "engineer1", "password": "eng123"})
+    response = client.post("/api/v1/auth/login", json={"username": "Avery", "password": "avery"})
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 

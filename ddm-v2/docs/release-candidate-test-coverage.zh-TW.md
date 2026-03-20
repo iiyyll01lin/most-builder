@@ -49,7 +49,7 @@
 
 1. 用 admin / admin123 登入。
 2. 確認可以看到完整資料、audit、db 管理功能。
-3. 用 engineer1 / eng123 登入，確認可以建立 SOP 與修改 draft actions，但不能 publish。
+3. 用 Avery / avery 登入，確認可以建立 SOP 與修改 draft actions，但不能 publish。
 4. 用 operator1 / op123 登入，確認只能看到 Published SOP，無法 review / publish。
 
 ### 2.2 Master data

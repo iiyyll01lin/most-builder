@@ -14,10 +14,10 @@ DEFAULT_STATE = {
             "role": UserRole.manager.value,
             "name": "System Manager",
         },
-        "engineer1": {
+        "Avery": {
             "id": "usr-eng-1",
-            "username": "engineer1",
-            "password": "eng123",
+            "username": "Avery",
+            "password": "avery",
             "role": UserRole.engineer.value,
             "name": "Avery, Yeh",
         },
@@ -32,19 +32,19 @@ DEFAULT_STATE = {
     "projects": [
         {
             "id": "proj-atlas",
-            "name": "Atlas Server Build",
-            "sku": "ATLAS-2U",
-            "version": "2.3",
-            "process_type": "Assembly",
-            "factory": "TPE-1",
+            "name": "K860G6-BASY",
+            "sku": "W*3558",
+            "version": "1.3",
+            "process_type": "BASY",
+            "factory": "SQT",
         },
         {
             "id": "proj-orion",
-            "name": "Orion Storage Build",
-            "sku": "ORION-1U",
-            "version": "1.8",
-            "process_type": "Assembly",
-            "factory": "KHH-2",
+            "name": "K860G6-RACK",
+            "sku": "W*3558-RACK",
+            "version": "1.4",
+            "process_type": "RACK",
+            "factory": "SQT",
         },
     ],
     "syntax_library": [
@@ -114,9 +114,9 @@ DEFAULT_STATE = {
         {"id": "emp-li", "name": "Li", "station_type": "Assembly", "skill_level": SkillLevel.novice.value, "efficiency_factor": 0.8},
     ],
     "stations": [
-        {"id": "ST-1", "name": "Station 1", "employee_id": "emp-eva"},
-        {"id": "ST-2", "name": "Station 2", "employee_id": "emp-noah"},
-        {"id": "ST-3", "name": "Station 3", "employee_id": "emp-li"},
+        {"id": "ST-3-1a", "name": "第3-1站 (DIMM)", "employee_id": "emp-eva"},
+        {"id": "ST-3-1b", "name": "第3-1站 (假DIMM)", "employee_id": "emp-noah"},
+        {"id": "ST-4-1", "name": "第4-1站 (主板)", "employee_id": "emp-li"},
     ],
     "sop_versions": [
         {

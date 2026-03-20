@@ -214,8 +214,8 @@
 
         // ------------- Login -----------------
         const LoginPanel = ({ onLogin, loading, error }) => {
-            const [username, setUsername] = useState('engineer1');
-            const [password, setPassword] = useState('eng123');
+            const [username, setUsername] = useState('Avery');
+            const [password, setPassword] = useState('avery');
 
             const handleSubmit = (e) => {
                 e.preventDefault();
@@ -248,7 +248,7 @@
                         <div className="mt-6 text-xs text-slate-500">
                             <p>Demo 帳號：</p>
                             <p>Manager: admin / admin123</p>
-                            <p>Engineer: engineer1 / eng123</p>
+                            <p>Engineer: Avery / avery</p>
                             <p>Operator: operator1 / op123</p>
                         </div>
                     </div>
@@ -2220,9 +2220,9 @@
             const [draggedLevelIndex, setDraggedLevelIndex] = useState(null);
             
             const [stationsConfig, setStationsConfig] = useState([
-                { id: 'ST-3-1a', name: '第3-1站 (DIMM)', employee_id: 'emp-001' },
-                { id: 'ST-3-1b', name: '第3-1站 (假DIMM)', employee_id: 'emp-002' },
-                { id: 'ST-4-1', name: '第4-1站 (主板)', employee_id: 'emp-003' }
+                { id: 'ST-3-1a', name: '第3-1站 (DIMM)', employee_id: 'emp-eva' },
+                { id: 'ST-3-1b', name: '第3-1站 (假DIMM)', employee_id: 'emp-noah' },
+                { id: 'ST-4-1', name: '第4-1站 (主板)', employee_id: 'emp-li' }
             ]);
             // Station Management State
             const [stationModalOpen, setStationModalOpen] = useState(false);

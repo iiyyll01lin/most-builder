@@ -33,7 +33,7 @@ uvicorn ddm_v2.main:app --reload --app-dir src
 ## 3. Demo 帳號
 
 - Manager: admin / admin123
-- Engineer: engineer1 / eng123
+- Engineer: Avery / avery
 - Operator: operator1 / op123
 
 ## 4. 最重要的目錄
@@ -97,7 +97,122 @@ uvicorn ddm_v2.main:app --reload --app-dir src
 
 如果你剛把系統拉起來，先做下面這一輪：
 
-1. 用 engineer1 登入。
+1. 用 Avery 登入。
+
+## 10. Linux Docker 部署
+
+以下流程假設你的 Linux server 已能用 SSH 登入，且要直接用 Docker Compose 對外提供服務。
+
+### Step 1. 安裝 Docker 與 Compose plugin
+
+以 Ubuntu / Debian 為例：
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo \
+	"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+	$(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+	sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
+```
+
+驗證：
+
+```bash
+docker --version
+docker compose version
+```
+
+### Step 2. 上傳專案到 server
+
+可以用 git clone，或直接把目前的 ddm-v2 目錄傳上去：
+
+```bash
+scp -r ddm-v2 your-user@your-server:/opt/
+ssh your-user@your-server
+cd /opt/ddm-v2
+```
+
+### Step 3. 建立部署設定
+
+先複製環境檔：
+
+```bash
+cp .env.example .env
+```
+
+建議至少修改這幾個值：
+
+- `DDM_PORT=8000`
+- `DDM_SECRET_KEY=` 改成長且隨機的值
+- `DDM_CORS_ALLOW_ORIGINS=` 改成你的網域，例如 `https://ddm.example.com`
+
+如果你之後會放在反向代理後面，也可以先保留容器內是 `8000`，由 Nginx 或 Traefik 對外轉發。
+
+### Step 4. Build 並啟動容器
+
+```bash
+docker compose up -d --build
+```
+
+檢查狀態：
+
+```bash
+docker compose ps
+docker compose logs -f
+```
+
+### Step 5. 驗證服務是否正常
+
+在 server 本機先驗證：
+
+```bash
+curl http://127.0.0.1:8000/api/v1/health
+```
+
+若成功，再從瀏覽器打開：
+
+- `http://your-server-ip:8000`
+- `http://your-server-ip:8000/control-console`
+
+### Step 6. 放行防火牆
+
+若有開 UFW：
+
+```bash
+sudo ufw allow 8000/tcp
+sudo ufw status
+```
+
+如果你是走 Nginx 反向代理，則通常只需要放行 `80` 與 `443`。
+
+### Step 7. 更新版本
+
+之後每次更新：
+
+```bash
+cd /opt/ddm-v2
+git pull
+docker compose up -d --build
+```
+
+### Step 8. 備份資料
+
+目前 runtime data 在 Docker volume `ddm-v2-data` 中，容器內路徑是 `/app/data`。
+
+可先匯出備份：
+
+```bash
+docker compose exec ddm-v2 sh -lc 'cp /app/data/runtime-db.json /app/data/runtime-db.backup.json'
+```
+
+如果要把 volume 內資料複製到宿主機，再做額外備份，我可以下一步直接幫你補一份可執行的 backup / restore 指令集。
 2. 確認 root 頁面與 control-console 都可載入。
 3. 建立一個 Draft SOP。
 4. 寫入 actions。

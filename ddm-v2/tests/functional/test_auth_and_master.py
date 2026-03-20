@@ -5,13 +5,13 @@ import pytest
 
 @pytest.mark.functional
 def test_login_success_and_profile(client):
-    login = client.post("/api/v1/auth/login", json={"username": "engineer1", "password": "eng123"})
+    login = client.post("/api/v1/auth/login", json={"username": "Avery", "password": "avery"})
     assert login.status_code == 200
     token = login.json()["access_token"]
 
     profile = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert profile.status_code == 200
-    assert profile.json()["username"] == "engineer1"
+    assert profile.json()["username"] == "Avery"
 
 
 @pytest.mark.functional

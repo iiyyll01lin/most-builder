@@ -51,7 +51,7 @@ The validation UI is now split into a shell page plus external legacy assets und
 ## Demo Accounts
 
 - Manager: `admin` / `admin123`
-- Engineer: `engineer1` / `eng123`
+- Engineer: `Avery` / `avery`
 - Operator: `operator1` / `op123`
 
 ## Running Tests
