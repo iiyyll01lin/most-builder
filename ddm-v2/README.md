@@ -2,6 +2,11 @@
 
 Refactored release-candidate codebase for the legacy DDM Phase 1 workflow. The application keeps the original core capabilities, but restructures them into a modular FastAPI backend with a lightweight static control console and a full automated test suite.
 
+Additional onboarding and RC validation docs:
+
+- `QUICKSTART.md`
+- `docs/release-candidate-test-coverage.zh-TW.md`
+
 ## Scope
 
 DDM v2 covers these functional areas:

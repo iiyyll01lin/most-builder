@@ -44,6 +44,25 @@ def test_db_save_and_load_report_active_store_path(client, manager_headers):
 
 
 @pytest.mark.functional
+def test_database_management_endpoints_enforce_manager_access_and_export_state(client, manager_headers, engineer_headers):
+    export_denied = client.get("/api/v1/db/export", headers=engineer_headers)
+    assert export_denied.status_code == 403
+
+    save_denied = client.post("/api/v1/db/save", headers=engineer_headers)
+    assert save_denied.status_code == 403
+
+    load_denied = client.post("/api/v1/db/load", headers=engineer_headers)
+    assert load_denied.status_code == 403
+
+    export_response = client.get("/api/v1/db/export", headers=manager_headers)
+    assert export_response.status_code == 200
+    payload = export_response.json()
+    assert "projects" in payload
+    assert "users" in payload
+    assert any(project["id"] == "proj-atlas" for project in payload["projects"])
+
+
+@pytest.mark.functional
 def test_db_reset_restores_default_state_and_audits_reset(client, manager_headers):
     create_response = client.post(
         "/api/v1/master/syntax",

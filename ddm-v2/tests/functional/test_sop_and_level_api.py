@@ -89,3 +89,73 @@ def test_missing_legacy_level_validation_endpoint_is_fixed(client, engineer_head
     )
     assert response.status_code == 200
     assert response.json()["valid"] is True
+
+
+@pytest.mark.functional
+def test_sop_status_workflow_enforces_role_and_visibility_rules(client, engineer_headers, manager_headers):
+    operator_login = client.post("/api/v1/auth/login", json={"username": "operator1", "password": "op123"})
+    assert operator_login.status_code == 200
+    operator_headers = {"Authorization": f"Bearer {operator_login.json()['access_token']}"}
+
+    create = client.post(
+        "/api/v1/sop/versions",
+        headers=engineer_headers,
+        json={"project_id": "proj-atlas", "version_no": "V9.9", "actions": []},
+    )
+    assert create.status_code == 201
+    sop_id = create.json()["id"]
+
+    operator_list_before_publish = client.get("/api/v1/sop/versions?project_id=proj-atlas", headers=operator_headers)
+    assert operator_list_before_publish.status_code == 200
+    assert all(version["status"] == "Published" for version in operator_list_before_publish.json())
+    assert sop_id not in {version["id"] for version in operator_list_before_publish.json()}
+
+    operator_get_draft = client.get(f"/api/v1/sop/versions/{sop_id}", headers=operator_headers)
+    assert operator_get_draft.status_code == 403
+
+    operator_review = client.put(
+        f"/api/v1/sop/versions/{sop_id}/status",
+        headers=operator_headers,
+        json={"status": "Reviewed"},
+    )
+    assert operator_review.status_code == 403
+
+    reviewed = client.put(
+        f"/api/v1/sop/versions/{sop_id}/status",
+        headers=engineer_headers,
+        json={"status": "Reviewed"},
+    )
+    assert reviewed.status_code == 200
+    reviewed_payload = reviewed.json()
+    assert reviewed_payload["status"] == "Reviewed"
+    assert reviewed_payload["reviewed_by"] == "usr-eng-1"
+    assert reviewed_payload["reviewed_at"] is not None
+
+    update_reviewed_actions = client.put(
+        f"/api/v1/sop/versions/{sop_id}/actions",
+        headers=engineer_headers,
+        json=[{"description": "Should fail"}],
+    )
+    assert update_reviewed_actions.status_code == 400
+
+    engineer_publish = client.put(
+        f"/api/v1/sop/versions/{sop_id}/status",
+        headers=engineer_headers,
+        json={"status": "Published"},
+    )
+    assert engineer_publish.status_code == 403
+
+    published = client.put(
+        f"/api/v1/sop/versions/{sop_id}/status",
+        headers=manager_headers,
+        json={"status": "Published"},
+    )
+    assert published.status_code == 200
+    published_payload = published.json()
+    assert published_payload["status"] == "Published"
+    assert published_payload["published_by"] == "usr-admin"
+    assert published_payload["published_at"] is not None
+
+    operator_get_published = client.get(f"/api/v1/sop/versions/{sop_id}", headers=operator_headers)
+    assert operator_get_published.status_code == 200
+    assert operator_get_published.json()["status"] == "Published"
