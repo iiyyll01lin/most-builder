@@ -31,7 +31,9 @@ MOST_STEP_KEYS = {
 
 
 def _as_most_step(raw_step: dict[str, Any]) -> MOSTStep:
-    payload = {key: deepcopy(raw_step.get(key)) for key in MOST_STEP_KEYS if key in raw_step}
+    # Use direct key access (guarded by `if key in raw_step`) so the inferred
+    # payload type is dict[str, Any] rather than dict[str, Any | None].
+    payload: dict[str, Any] = {key: deepcopy(raw_step[key]) for key in MOST_STEP_KEYS if key in raw_step}
     payload.setdefault("params", {})
     payload.setdefault("seq_type", "GENERAL")
     payload["frequency"] = max(int(payload.get("frequency") or 1), 1)
