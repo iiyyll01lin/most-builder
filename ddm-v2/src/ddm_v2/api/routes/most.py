@@ -125,9 +125,19 @@ def export_workspace(project_id: str, sop_version_id: str | None = None, store: 
     return deepcopy(workspace) if workspace else _empty_workspace(project_id, sop_version_id)
 
 
+def _glove_rule_specificity(rule: dict) -> int:
+    """Lower score = more specific; sorted ascending so specific rules match first."""
+    score = 0
+    if rule.get("object_category") == "*":
+        score += 2
+    if rule.get("action") in ("*", None):
+        score += 1
+    return score
+
+
 @router.post("/gloves/check", response_model=GloveCheckResponse)
 def glove_check(payload: GloveCheckRequest, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    rules = store.list_collection("glove_rules")
+    rules = sorted(store.list_collection("glove_rules"), key=_glove_rule_specificity)
     matched = next(
         (
             rule
