@@ -40,7 +40,7 @@ def _lookup_a_index(distance_cm: float) -> int:
         return 10
     if distance_cm <= 60:
         return 16
-    if distance_cm <= 120:
+    if distance_cm <= 65:
         return 24
     return 32
 

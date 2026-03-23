@@ -6,6 +6,7 @@ from typing import Any
 
 from ddm_v2.schemas import MOSTStep
 from ddm_v2.services.most_service import calculate_workflow
+from ddm_v2.settings import get_settings
 
 
 MOST_STEP_KEYS = {
@@ -69,13 +70,14 @@ def build_workspace_snapshot(
     actions: list[dict[str, Any]] = []
     step_lookup: dict[str, dict[str, Any]] = {}
 
+    tmu_factor = get_settings().tmu_factor
     for index, step in enumerate(normalized_steps):
         metric = result.breakdown[index]
         step["most_code"] = metric.code
         step["index_string"] = metric.index_string
         step["auto_sentence"] = metric.auto_sentence
         step["tmu"] = metric.tmu
-        step["seconds"] = round(metric.tmu * 0.036, 2)
+        step["seconds"] = round(metric.tmu * tmu_factor, 2)
         step["glove_type"] = metric.glove_type
         step["component"] = step.get("component") or metric.object
         step_lookup[step["id"]] = step
@@ -85,7 +87,7 @@ def build_workspace_snapshot(
                 "seq_type": metric.seq_type,
                 "description": step.get("description") or metric.auto_sentence,
                 "tmu": metric.tmu,
-                "seconds": round(metric.tmu * 0.036, 2),
+                "seconds": round(metric.tmu * tmu_factor, 2),
                 "params": {
                     **deepcopy(step.get("params") or {}),
                     "_most": {
