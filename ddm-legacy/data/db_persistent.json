@@ -1,0 +1,3547 @@
+{
+  "syntax_library": [
+    {
+      "id": "syn-001",
+      "action_verb": "GET",
+      "code_most": "A",
+      "parameter_range": "Distance < 30cm",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-002",
+      "action_verb": "GET",
+      "code_most": "A",
+      "parameter_range": "Distance 30-60cm",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-003",
+      "action_verb": "GET",
+      "code_most": "A",
+      "parameter_range": "Distance > 60cm",
+      "tmu_value": 6
+    },
+    {
+      "id": "syn-004",
+      "action_verb": "PUT",
+      "code_most": "P",
+      "parameter_range": "Loose fit",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-005",
+      "action_verb": "PUT",
+      "code_most": "P",
+      "parameter_range": "Tight fit",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-006",
+      "action_verb": "GRASP",
+      "code_most": "G",
+      "parameter_range": "Simple grasp",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-007",
+      "action_verb": "GRASP",
+      "code_most": "G",
+      "parameter_range": "Complex grasp",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-008",
+      "action_verb": "MOVE",
+      "code_most": "M",
+      "parameter_range": "Controlled < 30cm",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-009",
+      "action_verb": "MOVE",
+      "code_most": "M",
+      "parameter_range": "Controlled > 30cm",
+      "tmu_value": 6
+    },
+    {
+      "id": "syn-010",
+      "action_verb": "PROCESS",
+      "code_most": "X",
+      "parameter_range": "Simple process",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-011",
+      "action_verb": "PROCESS",
+      "code_most": "X",
+      "parameter_range": "Complex process",
+      "tmu_value": 6
+    },
+    {
+      "id": "syn-012",
+      "action_verb": "ALIGN",
+      "code_most": "I",
+      "parameter_range": "Simple alignment",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-013",
+      "action_verb": "ALIGN",
+      "code_most": "I",
+      "parameter_range": "Precise alignment",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-7fbf3af5",
+      "action_verb": "抓取",
+      "code_most": "G",
+      "parameter_range": "一般作业",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-288e34c2",
+      "action_verb": "拿取",
+      "code_most": "G",
+      "parameter_range": "一般作业",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-95484711",
+      "action_verb": "轻拍",
+      "code_most": "G",
+      "parameter_range": "一般作业",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-ba6ee7f9",
+      "action_verb": "抓握",
+      "code_most": "G",
+      "parameter_range": "一般作业",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-74bc3401",
+      "action_verb": "按动按钮",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-e4ae4d9e",
+      "action_verb": "理",
+      "code_most": "M",
+      "parameter_range": "理線",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-1aaf6414",
+      "action_verb": "穿",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-96fada25",
+      "action_verb": "滑出螺丝",
+      "code_most": "M",
+      "parameter_range": "锁螺丝",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-713629e3",
+      "action_verb": "推",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-439304ef",
+      "action_verb": "拉",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-983998ef",
+      "action_verb": "贴附",
+      "code_most": "M",
+      "parameter_range": "貼附",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-e00c1a50",
+      "action_verb": "去除",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-0e3e7dbf",
+      "action_verb": "撕除",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-8ceeba57",
+      "action_verb": "撕开",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-8135edd0",
+      "action_verb": "折",
+      "code_most": "M",
+      "parameter_range": "理線",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-e640c5d0",
+      "action_verb": "擦拭",
+      "code_most": "M",
+      "parameter_range": "擦拭",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-999029bc",
+      "action_verb": "手度",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-ae46afca",
+      "action_verb": "脚步",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 6
+    },
+    {
+      "id": "syn-9d83768f",
+      "action_verb": "旋转",
+      "code_most": "M",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-2ffb55a1",
+      "action_verb": "丢",
+      "code_most": "P",
+      "parameter_range": "一般作业",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-e80fcf93",
+      "action_verb": "保持住",
+      "code_most": "P",
+      "parameter_range": "一般作业",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-6a85a296",
+      "action_verb": "放",
+      "code_most": "P",
+      "parameter_range": "一般作业",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-5b4017d7",
+      "action_verb": "组",
+      "code_most": "P",
+      "parameter_range": "裝配",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-83294f51",
+      "action_verb": "复选",
+      "code_most": "P",
+      "parameter_range": "一般作业",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-1da9836f",
+      "action_verb": "对准",
+      "code_most": "P",
+      "parameter_range": "插金手指",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-0e3e5649",
+      "action_verb": "插入",
+      "code_most": "P",
+      "parameter_range": "插線",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-039387dc",
+      "action_verb": "卡合",
+      "code_most": "P",
+      "parameter_range": "卡合",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-ef2f5525",
+      "action_verb": "施加壓力",
+      "code_most": "P",
+      "parameter_range": "一般作业",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-dba7480e",
+      "action_verb": "压合",
+      "code_most": "X",
+      "parameter_range": "壓合&熱熔",
+      "tmu_value": 6
+    },
+    {
+      "id": "syn-ed5048d9",
+      "action_verb": "热熔",
+      "code_most": "X",
+      "parameter_range": "壓合&熱熔",
+      "tmu_value": 6
+    },
+    {
+      "id": "syn-3418771e",
+      "action_verb": "点胶",
+      "code_most": "X",
+      "parameter_range": "點膠&Bonding",
+      "tmu_value": 6
+    },
+    {
+      "id": "syn-b7fe748d",
+      "action_verb": "锁附固定",
+      "code_most": "X",
+      "parameter_range": "鎖螺絲",
+      "tmu_value": 6
+    },
+    {
+      "id": "syn-5e0f7f5e",
+      "action_verb": "镭雕",
+      "code_most": "X",
+      "parameter_range": "半自動/自動化設備操作",
+      "tmu_value": 6
+    },
+    {
+      "id": "syn-1d71bf0b",
+      "action_verb": "扫描",
+      "code_most": "X",
+      "parameter_range": "刷槍",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-808de78d",
+      "action_verb": "刷PPID",
+      "code_most": "X",
+      "parameter_range": "刷槍",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-c32cfd31",
+      "action_verb": "刷工单二维码",
+      "code_most": "X",
+      "parameter_range": "刷槍",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-329d06fb",
+      "action_verb": "刷条形码",
+      "code_most": "X",
+      "parameter_range": "刷槍",
+      "tmu_value": 3
+    },
+    {
+      "id": "syn-c3e07735",
+      "action_verb": "打印",
+      "code_most": "X",
+      "parameter_range": "半自動/自動化設備操作",
+      "tmu_value": 0
+    },
+    {
+      "id": "syn-48cf3ad5",
+      "action_verb": "并检查",
+      "code_most": "I",
+      "parameter_range": "目視",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-7a5fb8ab",
+      "action_verb": "并确认",
+      "code_most": "I",
+      "parameter_range": "目視",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-0b169834",
+      "action_verb": "并对准",
+      "code_most": "I",
+      "parameter_range": "目視",
+      "tmu_value": 1
+    },
+    {
+      "id": "syn-92025ef0",
+      "action_verb": "并对齐",
+      "code_most": "I",
+      "parameter_range": "目視",
+      "tmu_value": 1
+    }
+  ],
+  "component_library": [
+    {
+      "id": "comp-001",
+      "name_cn": "MLB(主機板)",
+      "name_en": "Motherboard",
+      "category": "Main Part"
+    },
+    {
+      "id": "comp-002",
+      "name_cn": "內存(Memory)",
+      "name_en": "Memory Module",
+      "category": "Memory"
+    },
+    {
+      "id": "comp-003",
+      "name_cn": "假DIMM",
+      "name_en": "Dummy DIMM",
+      "category": "Dummy Part"
+    },
+    {
+      "id": "comp-004",
+      "name_cn": "DIMM",
+      "name_en": "DIMM Module",
+      "category": "Memory"
+    },
+    {
+      "id": "comp-005",
+      "name_cn": "拇指螺絲",
+      "name_en": "Thumb Screw",
+      "category": "Standard Part"
+    },
+    {
+      "id": "comp-006",
+      "name_cn": "主板",
+      "name_en": "Main Board",
+      "category": "Main Part"
+    },
+    {
+      "id": "comp-007",
+      "name_cn": "機箱",
+      "name_en": "Chassis",
+      "category": "Main Part"
+    },
+    {
+      "id": "comp-008",
+      "name_cn": "CPU散熱器",
+      "name_en": "CPU Heatsink",
+      "category": "Standard Part"
+    }
+  ],
+  "tool_library": [
+    {
+      "id": "tool-001",
+      "name": "電動起子",
+      "spec": "3±0.2 lbf.in",
+      "bit": "δ,05,2#"
+    },
+    {
+      "id": "tool-002",
+      "name": "手套",
+      "spec": "ESD",
+      "bit": null
+    },
+    {
+      "id": "tool-003",
+      "name": "靜電氣槍",
+      "spec": "Anti-static",
+      "bit": null
+    },
+    {
+      "id": "tool-004",
+      "name": "吸塵器",
+      "spec": "Clean room",
+      "bit": null
+    }
+  ],
+  "location_library": [
+    {
+      "id": "loc-001",
+      "name": "潔淨柵工作台"
+    },
+    {
+      "id": "loc-002",
+      "name": "DIMM槽"
+    },
+    {
+      "id": "loc-003",
+      "name": "機箱內"
+    },
+    {
+      "id": "loc-004",
+      "name": "DIMM壓合治具"
+    },
+    {
+      "id": "loc-005",
+      "name": "主板DIMM槽"
+    },
+    {
+      "id": "loc-006",
+      "name": "MVS站"
+    },
+    {
+      "id": "loc-007",
+      "name": "離子風扇下"
+    },
+    {
+      "id": "loc-770ee054",
+      "name": "潔淨台"
+    }
+  ],
+  "object_library": [
+    {
+      "id": "obj-4nvme-bp",
+      "category": "背板",
+      "sub_category": "NVMe",
+      "name": "4NVME BP",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-bf3-cage",
+      "category": "擴充卡",
+      "sub_category": "BF3",
+      "name": "BF3 cage",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-bf3-riser",
+      "category": "擴充卡",
+      "sub_category": "BF3",
+      "name": "BF3 riser",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-bf3-nic",
+      "category": "網卡",
+      "sub_category": "BF3",
+      "name": "BF3網卡",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-bp-sideband",
+      "category": "線材",
+      "sub_category": "BP",
+      "name": "BP sideband線",
+      "glove_type": "左手半指+右手指套",
+      "ctq": false
+    },
+    {
+      "id": "obj-bp-power",
+      "category": "線材",
+      "sub_category": "BP",
+      "name": "BP供電線",
+      "glove_type": "左手半指+右手指套",
+      "ctq": false
+    },
+    {
+      "id": "obj-cpu",
+      "category": "處理器",
+      "sub_category": "CPU",
+      "name": "CPU",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-cpu-bracket",
+      "category": "支架",
+      "sub_category": "CPU",
+      "name": "CPU支架",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-cpu-chip",
+      "category": "處理器",
+      "sub_category": "MPU",
+      "name": "CPU晶片(MPU)",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-dpu",
+      "category": "處理器",
+      "sub_category": "DPU",
+      "name": "DPU",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-dpu2-cable",
+      "category": "線材",
+      "sub_category": "DPU",
+      "name": "DPU2轉接線",
+      "glove_type": "左手半指+右手指套",
+      "ctq": false
+    },
+    {
+      "id": "obj-dpu-bracket",
+      "category": "支架",
+      "sub_category": "DPU",
+      "name": "DPU支架",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-gpu-cage",
+      "category": "擴充卡",
+      "sub_category": "GPU",
+      "name": "GPU Cage",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-gpu-riser",
+      "category": "擴充卡",
+      "sub_category": "GPU",
+      "name": "GPU Riser",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-gpu-cable",
+      "category": "線材",
+      "sub_category": "GPU",
+      "name": "GPU轉接線",
+      "glove_type": "左手半指+右手指套",
+      "ctq": false
+    },
+    {
+      "id": "obj-hood-label",
+      "category": "標籤",
+      "sub_category": "Label",
+      "name": "HOOD LABEL",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-rfid-label",
+      "category": "標籤",
+      "sub_category": "RFID",
+      "name": "RFID空白標籤",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-net-label",
+      "category": "標籤",
+      "sub_category": "Label",
+      "name": "網口標籤",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-net-order-label",
+      "category": "標籤",
+      "sub_category": "Label",
+      "name": "網口順序標籤",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-sticker",
+      "category": "標籤",
+      "sub_category": "Label",
+      "name": "標貼",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-io-card",
+      "category": "介面卡",
+      "sub_category": "IO",
+      "name": "I/O卡",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-lan-switch",
+      "category": "網卡",
+      "sub_category": "Switch",
+      "name": "LAN switch",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-nic",
+      "category": "網卡",
+      "sub_category": "NIC",
+      "name": "NIC卡",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-ocp-dummy",
+      "category": "網卡",
+      "sub_category": "OCP",
+      "name": "OCP DUMMY",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-ocp-card",
+      "category": "網卡",
+      "sub_category": "OCP",
+      "name": "OCP卡",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-ocp-cable",
+      "category": "線材",
+      "sub_category": "OCP",
+      "name": "OCP轉接線",
+      "glove_type": "左手半指+右手指套",
+      "ctq": false
+    },
+    {
+      "id": "obj-ocp-label",
+      "category": "標籤",
+      "sub_category": "OCP",
+      "name": "OCP標籤",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-server-nic",
+      "category": "網卡",
+      "sub_category": "NIC",
+      "name": "網卡(服務器用)",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-net-cable",
+      "category": "線材",
+      "sub_category": "Cable",
+      "name": "網線(有接頭)",
+      "glove_type": "左手半指+右手指套",
+      "ctq": false
+    },
+    {
+      "id": "obj-mlb",
+      "category": "主板/MLB",
+      "sub_category": "MLB",
+      "name": "MLB",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-server-mb",
+      "category": "主板/MLB",
+      "sub_category": "MLB",
+      "name": "服務器主機板",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-backplane",
+      "category": "背板",
+      "sub_category": "BP",
+      "name": "背板",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-adapter-board",
+      "category": "轉接板",
+      "sub_category": "Adapter",
+      "name": "轉接板(服務器零件)",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-rear-io-cable",
+      "category": "線材",
+      "sub_category": "IO",
+      "name": "Rear IO Cable",
+      "glove_type": "左手半指+右手指套",
+      "ctq": false
+    },
+    {
+      "id": "obj-top-cable",
+      "category": "線材",
+      "sub_category": "Cable",
+      "name": "TOP線",
+      "glove_type": "左手半指+右手指套",
+      "ctq": false
+    },
+    {
+      "id": "obj-wire",
+      "category": "線材",
+      "sub_category": "Wire",
+      "name": "電線",
+      "glove_type": "左手半指+右手指套",
+      "ctq": false
+    },
+    {
+      "id": "obj-ssd",
+      "category": "儲存裝置",
+      "sub_category": "SSD",
+      "name": "SSD固態硬盤",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-dimm",
+      "category": "記憶體",
+      "sub_category": "DIMM",
+      "name": "DIMM內存",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-hdd",
+      "category": "儲存裝置",
+      "sub_category": "HDD",
+      "name": "HDD",
+      "glove_type": "兩只無塵手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-fake-dimm",
+      "category": "假件",
+      "sub_category": "DIMM",
+      "name": "假DIMM",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-fake-ssd",
+      "category": "假件",
+      "sub_category": "SSD",
+      "name": "假SSD",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-hdd-bracket",
+      "category": "支架",
+      "sub_category": "HDD",
+      "name": "硬盤支架",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-hdd-shell",
+      "category": "機殼",
+      "sub_category": "HDD",
+      "name": "硬盤模殼",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-cold-plate",
+      "category": "散熱",
+      "sub_category": "ColdPlate",
+      "name": "冷板",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-liquid-bracket",
+      "category": "支架",
+      "sub_category": "Liquid",
+      "name": "液冷管支架",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-heatsink",
+      "category": "散熱",
+      "sub_category": "Heatsink",
+      "name": "散熱片",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-cooling-fan",
+      "category": "散熱",
+      "sub_category": "Fan",
+      "name": "散熱風扇",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-thermal-module",
+      "category": "散熱",
+      "sub_category": "Module",
+      "name": "散熱模組",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-fan",
+      "category": "風扇",
+      "sub_category": "Fan",
+      "name": "風扇",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-fan-shell",
+      "category": "風扇",
+      "sub_category": "Shell",
+      "name": "風扇外殼",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-small-baffle",
+      "category": "擋板",
+      "sub_category": "Baffle",
+      "name": "小擋風罩",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-long-plate",
+      "category": "擋板",
+      "sub_category": "Plate",
+      "name": "長擋片",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-air-duct",
+      "category": "導風罩",
+      "sub_category": "Duct",
+      "name": "導風罩",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-mesh-plate",
+      "category": "擋板",
+      "sub_category": "Mesh",
+      "name": "網狀擋片",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-mesh-baffle",
+      "category": "擋板",
+      "sub_category": "Mesh",
+      "name": "網狀擋板",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-rear-baffle",
+      "category": "擋板",
+      "sub_category": "Baffle",
+      "name": "尾部擋板",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-plate",
+      "category": "擋板",
+      "sub_category": "Plate",
+      "name": "擋片",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-wind-baffle",
+      "category": "導風罩",
+      "sub_category": "Baffle",
+      "name": "擋風罩",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-main-chassis",
+      "category": "機殼",
+      "sub_category": "Chassis",
+      "name": "主機殼",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-chassis",
+      "category": "機殼",
+      "sub_category": "Chassis",
+      "name": "機殼",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-beam",
+      "category": "結構件",
+      "sub_category": "Beam",
+      "name": "橫樑",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-right-ear",
+      "category": "結構件",
+      "sub_category": "Ear",
+      "name": "右耳",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-left-ear",
+      "category": "結構件",
+      "sub_category": "Ear",
+      "name": "左耳",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-bracket",
+      "category": "支架",
+      "sub_category": "Bracket",
+      "name": "支架",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-cable-bracket",
+      "category": "支架",
+      "sub_category": "Cable",
+      "name": "轉接線支架",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-front-riser",
+      "category": "擴充卡",
+      "sub_category": "Riser",
+      "name": "前置riser",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-front-riser-cage",
+      "category": "擴充卡",
+      "sub_category": "Riser",
+      "name": "前置riser cage",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-power",
+      "category": "電源",
+      "sub_category": "PSU",
+      "name": "電源",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-psu",
+      "category": "電源",
+      "sub_category": "PSU",
+      "name": "電源供應器",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-cable-tie",
+      "category": "標準件",
+      "sub_category": "Tie",
+      "name": "紮帶",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-plastic-fastener",
+      "category": "標準件",
+      "sub_category": "Fastener",
+      "name": "塑膠緊固件",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-plastic-bag",
+      "category": "包材",
+      "sub_category": "Bag",
+      "name": "塑膠袋",
+      "glove_type": "一般作業手套",
+      "ctq": false
+    },
+    {
+      "id": "obj-screw",
+      "category": "標準件",
+      "sub_category": "Screw",
+      "name": "螺絲",
+      "glove_type": "兩只半指手套",
+      "ctq": true
+    },
+    {
+      "id": "obj-nut",
+      "category": "標準件",
+      "sub_category": "Nut",
+      "name": "螺母",
+      "glove_type": "兩只半指手套",
+      "ctq": false
+    }
+  ],
+  "from_locations": [
+    {
+      "id": "from-rack",
+      "name": "捡料架"
+    },
+    {
+      "id": "from-cart",
+      "name": "周轉車"
+    },
+    {
+      "id": "from-bin",
+      "name": "百寶箱"
+    },
+    {
+      "id": "from-buffer",
+      "name": "站點Buffer"
+    }
+  ],
+  "to_locations": [
+    {
+      "id": "to-mb",
+      "name": "主板"
+    },
+    {
+      "id": "to-lcd",
+      "name": "LCD"
+    },
+    {
+      "id": "to-chassis",
+      "name": "機箱"
+    },
+    {
+      "id": "to-trash",
+      "name": "垃圾桶"
+    },
+    {
+      "id": "to-fixture",
+      "name": "治具"
+    }
+  ],
+  "reference_points": [
+    {
+      "id": "ref-mes",
+      "name": "MES工站顯示"
+    },
+    {
+      "id": "ref-light",
+      "name": "工位指示燈"
+    },
+    {
+      "id": "ref-label",
+      "name": "條碼標籤區"
+    },
+    {
+      "id": "ref-fixture",
+      "name": "治具定位點"
+    }
+  ],
+  "precautions": [
+    {
+      "id": "prec-001",
+      "process": "BASY",
+      "category": "ESD",
+      "index_code": "A1",
+      "description": "操作MLB/LCD需配戴兩只半指手套，避免ESD與指紋污染"
+    },
+    {
+      "id": "prec-002",
+      "process": "BASY",
+      "category": "治具",
+      "index_code": "B1",
+      "description": "進入治具前需確認定位銷及防呆結構，避免撞傷物料"
+    },
+    {
+      "id": "prec-003",
+      "process": "BPKG",
+      "category": "品檢",
+      "index_code": "I",
+      "description": "封箱前需雙人複檢條碼與出貨單對應"
+    }
+  ],
+  "glove_rules": [
+    {
+      "id": "glove-001",
+      "object_category": "高單價物料",
+      "action": "放",
+      "glove_type": "兩只半指手套"
+    },
+    {
+      "id": "glove-002",
+      "object_category": "主板/MLB",
+      "action": "組",
+      "glove_type": "兩只半指手套"
+    },
+    {
+      "id": "glove-003",
+      "object_category": "線材",
+      "action": "理",
+      "glove_type": "左手半指+右手指套"
+    },
+    {
+      "id": "glove-004",
+      "object_category": "包材",
+      "action": "裝箱",
+      "glove_type": "一般作業手套"
+    }
+  ],
+  "level_system_templates": [
+    {
+      "id": "lvl-001",
+      "name": "LCD安裝-主流程",
+      "sequence": [
+        "main:1",
+        "main:2",
+        "sub1:2.1",
+        "sub1:2.2",
+        "cub1:2.2.1"
+      ],
+      "notes": "LCD屬CTQ，sub層需要nb限制不超過2個元素"
+    },
+    {
+      "id": "lvl-002",
+      "name": "線材整理-雙手動作",
+      "sequence": [
+        "main:1",
+        "sub1:1.1",
+        "sub1:1.2",
+        "nb:hand=2"
+      ],
+      "notes": "線材整理需限制為雙手同步，以nb元素約束手數"
+    }
+  ],
+  "ion_fan_bindings": [
+    {
+      "id": "ionfan-default",
+      "object_category": "高單價物料",
+      "object_name": "LCD",
+      "note": "操作此物料時必須開啟離子風扇"
+    }
+  ],
+  "mi_naming_rules": [
+    {
+      "id": "mi-field-001",
+      "field_label": "機種五碼",
+      "slug": "model_code",
+      "position": 1,
+      "description": "手動輸入機種代碼，未輸入時預設為All model",
+      "options": [],
+      "example": "HDL50",
+      "required": true
+    },
+    {
+      "id": "mi-field-002",
+      "field_label": "製程別",
+      "slug": "process",
+      "position": 4,
+      "description": "ASSY / PACK / DOCK / SMT 等流程",
+      "options": [
+        "ASSY",
+        "PACK",
+        "SUB",
+        "SMT"
+      ],
+      "example": "ASSY",
+      "required": true
+    }
+  ],
+  "level_guidelines": [
+    {
+      "id": "lvl-guide-default",
+      "title": "Level System 基礎",
+      "body": "main 為主要層級，sub/cub 用於細分，nb 作為分割限制元素。"
+    }
+  ],
+  "employees": [
+    {
+      "id": "emp-001",
+      "name": "張組長",
+      "station_type": "Assembly",
+      "skill_level": "Expert",
+      "efficiency_factor": 1.2
+    },
+    {
+      "id": "emp-002",
+      "name": "李技術員",
+      "station_type": "Assembly",
+      "skill_level": "Proficient",
+      "efficiency_factor": 1.0
+    },
+    {
+      "id": "emp-003",
+      "name": "王工程師",
+      "station_type": "Assembly",
+      "skill_level": "Expert",
+      "efficiency_factor": 1.1
+    },
+    {
+      "id": "emp-004",
+      "name": "陳小美",
+      "station_type": "Assembly",
+      "skill_level": "Novice",
+      "efficiency_factor": 0.85
+    },
+    {
+      "id": "emp-005",
+      "name": "林大華",
+      "station_type": "Assembly",
+      "skill_level": "Proficient",
+      "efficiency_factor": 0.95
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-001",
+      "name": "K860G6-BASY",
+      "family": "K860G6",
+      "process_type": "BASY",
+      "sku": "W*3558",
+      "version": "1.3",
+      "effective_date": "2025/8/7",
+      "compliance": "RoHS2",
+      "factory": "SQT"
+    }
+  ],
+  "sop_versions": [
+    {
+      "id": "sop-001",
+      "project_id": "proj-001",
+      "version_no": "V1.0",
+      "status": "Published",
+      "actions": [
+        {
+          "id": "act-001",
+          "seq_type": "GENERAL",
+          "description": "將過完MVS站的主板放置在潔淨柵內的工作台上",
+          "tmu": 80,
+          "seconds": 2.88,
+          "params": {
+            "A1": 6,
+            "B1": 0,
+            "G": 1,
+            "A2": 3,
+            "B2": 0,
+            "P": 1,
+            "A3": 0
+          },
+          "station_id": "ST-3-1a",
+          "component": "主板",
+          "tool": "無",
+          "is_ctq": false,
+          "primary_action": "放",
+          "hand": "双手",
+          "object_category": "主板/MLB",
+          "glove_type": "兩只半指手套",
+          "level_tag": "main:1"
+        },
+        {
+          "id": "act-002",
+          "seq_type": "CONTROLLED",
+          "description": "掰開主板上DIMM槽，將過完MVS的DIMM按照配置要求放在DIMM槽內",
+          "tmu": 150,
+          "seconds": 5.4,
+          "params": {
+            "A1": 3,
+            "B1": 0,
+            "G": 3,
+            "M": 6,
+            "X": 3,
+            "I": 3,
+            "A3": 0
+          },
+          "station_id": "ST-3-1b",
+          "component": "DIMM",
+          "tool": "DIMM壓合治具",
+          "is_ctq": true,
+          "primary_action": "插入",
+          "hand": "双手",
+          "object_category": "記憶體",
+          "glove_type": "兩只半指手套",
+          "level_tag": "main:2|sub1:2.1"
+        },
+        {
+          "id": "act-003",
+          "seq_type": "CONTROLLED",
+          "description": "將假DIMM按照配置需求數量裝入主板DIMM槽內",
+          "tmu": 120,
+          "seconds": 4.32,
+          "params": {
+            "A1": 3,
+            "B1": 0,
+            "G": 1,
+            "M": 6,
+            "X": 3,
+            "I": 1,
+            "A3": 0
+          },
+          "station_id": "ST-4",
+          "component": "假DIMM",
+          "tool": "DIMM壓合治具",
+          "is_ctq": false,
+          "primary_action": "卡合",
+          "hand": "双手",
+          "object_category": "記憶體",
+          "glove_type": "兩只半指手套",
+          "level_tag": "main:3|sub1:3.1"
+        },
+        {
+          "id": "act-004",
+          "seq_type": "CONTROLLED",
+          "description": "將兩顆拇指螺絲鎖緊，電動起子: 3±0.2 lbf.in，起子頭: δ,05,2#",
+          "tmu": 100,
+          "seconds": 3.6,
+          "params": {
+            "A1": 1,
+            "B1": 0,
+            "G": 1,
+            "M": 3,
+            "X": 6,
+            "I": 1,
+            "A3": 0
+          },
+          "station_id": "ST-4-1",
+          "component": "拇指螺絲",
+          "tool": "電動起子",
+          "is_ctq": true,
+          "primary_action": "锁附固定",
+          "hand": "右手",
+          "object_category": "標準件",
+          "glove_type": "兩只半指手套",
+          "level_tag": "main:4|sub1:4.1|nb:fasten"
+        }
+      ],
+      "created_by": "user-002",
+      "created_at": "2025-12-05T13:40:29.618355",
+      "reviewed_by": "user-001",
+      "reviewed_at": "2025-12-05T13:40:29.618362",
+      "published_by": "user-001",
+      "published_at": "2025-12-05T13:40:29.618363"
+    },
+    {
+      "id": "sop-7ac78f0e",
+      "project_id": "proj-001",
+      "version_no": "V1.1",
+      "status": "Reviewed",
+      "actions": [
+        {
+          "id": "step-1766041627120",
+          "seq_type": "CONTROLLED",
+          "description": "右手 從站點Buffer 拿取 I/O卡，GET 到垃圾桶",
+          "tmu": 110,
+          "seconds": 0.0,
+          "params": {
+            "A1": 1,
+            "A1_cm": 5,
+            "B1": 0,
+            "G": 3,
+            "A2": 1,
+            "A2_cm": 5,
+            "B2": 0,
+            "P": 6,
+            "M": 0,
+            "X": 0,
+            "I": 0
+          },
+          "station_id": "ST-3-1a",
+          "component": "I/O卡",
+          "tool": "無",
+          "image_url": null,
+          "is_ctq": false,
+          "primary_action": "GET",
+          "hand": "右手",
+          "object_category": "介面卡",
+          "glove_type": "兩只半指手套",
+          "frequency": 1,
+          "level_tag": ""
+        },
+        {
+          "id": "step-1766041589599",
+          "seq_type": "GENERAL",
+          "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+          "tmu": 110,
+          "seconds": 0.0,
+          "params": {
+            "A1": 1,
+            "A1_cm": 5,
+            "B1": 0,
+            "G": 3,
+            "A2": 1,
+            "A2_cm": 5,
+            "B2": 0,
+            "P": 6,
+            "M": 0,
+            "X": 0,
+            "I": 0
+          },
+          "station_id": "ST-3-1b",
+          "component": "4NVME BP",
+          "tool": "無",
+          "image_url": null,
+          "is_ctq": false,
+          "primary_action": "GET",
+          "hand": "双手",
+          "object_category": "背板",
+          "glove_type": "兩只半指手套",
+          "frequency": 1,
+          "level_tag": ""
+        },
+        {
+          "id": "step-1766041589758",
+          "seq_type": "GENERAL",
+          "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+          "tmu": 110,
+          "seconds": 0.0,
+          "params": {
+            "A1": 1,
+            "A1_cm": 5,
+            "B1": 0,
+            "G": 3,
+            "A2": 1,
+            "A2_cm": 5,
+            "B2": 0,
+            "P": 6,
+            "M": 0,
+            "X": 0,
+            "I": 0
+          },
+          "station_id": "ST-4",
+          "component": "4NVME BP",
+          "tool": "無",
+          "image_url": null,
+          "is_ctq": false,
+          "primary_action": "GET",
+          "hand": "双手",
+          "object_category": "背板",
+          "glove_type": "兩只半指手套",
+          "frequency": 1,
+          "level_tag": ""
+        },
+        {
+          "id": "step-1766041589303",
+          "seq_type": "GENERAL",
+          "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+          "tmu": 440,
+          "seconds": 0.0,
+          "params": {
+            "A1": 1,
+            "A1_cm": 5,
+            "B1": 0,
+            "G": 3,
+            "A2": 1,
+            "A2_cm": 5,
+            "B2": 0,
+            "P": 6,
+            "M": 0,
+            "X": 0,
+            "I": 0
+          },
+          "station_id": "ST-4-1",
+          "component": "4NVME BP",
+          "tool": "無",
+          "image_url": null,
+          "is_ctq": false,
+          "primary_action": "GET",
+          "hand": "双手",
+          "object_category": "背板",
+          "glove_type": "兩只半指手套",
+          "frequency": 4,
+          "level_tag": ""
+        },
+        {
+          "id": "step-1766041627262",
+          "seq_type": "CONTROLLED",
+          "description": "右手 從站點Buffer 拿取 I/O卡，GET 到垃圾桶",
+          "tmu": 110,
+          "seconds": 0.0,
+          "params": {
+            "A1": 1,
+            "A1_cm": 5,
+            "B1": 0,
+            "G": 3,
+            "A2": 1,
+            "A2_cm": 5,
+            "B2": 0,
+            "P": 6,
+            "M": 0,
+            "X": 0,
+            "I": 0
+          },
+          "station_id": "ST-3-1a",
+          "component": "I/O卡",
+          "tool": "無",
+          "image_url": null,
+          "is_ctq": false,
+          "primary_action": "GET",
+          "hand": "右手",
+          "object_category": "介面卡",
+          "glove_type": "兩只半指手套",
+          "frequency": 1,
+          "level_tag": ""
+        }
+      ],
+      "created_by": "user-002",
+      "created_at": "2025-12-09T05:25:33.369204",
+      "reviewed_by": "user-002",
+      "reviewed_at": "2025-12-18T07:08:48.187445+00:00",
+      "published_by": null,
+      "published_at": null
+    },
+    {
+      "id": "sop-c95a781f",
+      "project_id": "proj-001",
+      "version_no": "V1.2",
+      "status": "Draft",
+      "actions": [],
+      "created_by": "user-002",
+      "created_at": "2026-01-28T08:36:33.183251+00:00",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "published_by": null,
+      "published_at": null
+    }
+  ],
+  "actions": [],
+  "stations": [
+    {
+      "id": "ST-3-1a",
+      "name": "第3-1站 (組裝DIMM站)",
+      "operator": "EMP-001 (張組長)",
+      "skill_level": 1.0
+    },
+    {
+      "id": "ST-3-1b",
+      "name": "第3-1站 (組裝假DIMM站)",
+      "operator": "EMP-002 (李技術員)",
+      "skill_level": 0.9
+    },
+    {
+      "id": "ST-4-1",
+      "name": "第4-1站 (組裝主板站)",
+      "operator": "EMP-003 (王工程師)",
+      "skill_level": 1.1
+    },
+    {
+      "id": "ST-4",
+      "name": "第4站",
+      "operator": "emp-004 (陳小美)",
+      "skill_level": 0.85
+    }
+  ],
+  "audit_logs": [
+    {
+      "id": "audit-0ea94567",
+      "timestamp": "2025-12-05T14:23:56.066985",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-002",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-44a1a2c9",
+      "timestamp": "2025-12-05T15:17:11.628249",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-003",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-3-1a"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-3-1a"
+    },
+    {
+      "id": "audit-5c898f3f",
+      "timestamp": "2025-12-09T05:25:33.369213",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "CREATE",
+      "entity_type": "SOPVersion",
+      "entity_id": "sop-7ac78f0e",
+      "old_value": null,
+      "new_value": {
+        "id": "sop-7ac78f0e",
+        "project_id": "proj-001",
+        "version_no": "V1.1",
+        "status": "Draft",
+        "actions": [
+          {
+            "id": "step-1765257924523",
+            "seq_type": "GENERAL",
+            "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+            "tmu": 440,
+            "seconds": 0.0,
+            "params": {
+              "A1": 1,
+              "A1_cm": 5,
+              "B1": 0,
+              "G": 3,
+              "A2": 1,
+              "A2_cm": 5,
+              "B2": 0,
+              "P": 6,
+              "M": 0,
+              "X": 0,
+              "I": 0
+            },
+            "station_id": "ST-3-1b",
+            "component": "4NVME BP",
+            "tool": "無",
+            "image_url": null,
+            "is_ctq": false,
+            "primary_action": "GET",
+            "hand": "双手",
+            "object_category": "背板",
+            "glove_type": "兩只半指手套",
+            "frequency": 4,
+            "level_tag": ""
+          },
+          {
+            "id": "step-1765257924699",
+            "seq_type": "GENERAL",
+            "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+            "tmu": 110,
+            "seconds": 0.0,
+            "params": {
+              "A1": 1,
+              "A1_cm": 5,
+              "B1": 0,
+              "G": 3,
+              "A2": 1,
+              "A2_cm": 5,
+              "B2": 0,
+              "P": 6,
+              "M": 0,
+              "X": 0,
+              "I": 0
+            },
+            "station_id": "ST-3-1a",
+            "component": "4NVME BP",
+            "tool": "無",
+            "image_url": null,
+            "is_ctq": false,
+            "primary_action": "GET",
+            "hand": "双手",
+            "object_category": "背板",
+            "glove_type": "兩只半指手套",
+            "frequency": 1,
+            "level_tag": ""
+          },
+          {
+            "id": "step-1765257924861",
+            "seq_type": "GENERAL",
+            "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+            "tmu": 110,
+            "seconds": 0.0,
+            "params": {
+              "A1": 1,
+              "A1_cm": 5,
+              "B1": 0,
+              "G": 3,
+              "A2": 1,
+              "A2_cm": 5,
+              "B2": 0,
+              "P": 6,
+              "M": 0,
+              "X": 0,
+              "I": 0
+            },
+            "station_id": "ST-3-1a",
+            "component": "4NVME BP",
+            "tool": "無",
+            "image_url": null,
+            "is_ctq": false,
+            "primary_action": "GET",
+            "hand": "双手",
+            "object_category": "背板",
+            "glove_type": "兩只半指手套",
+            "frequency": 1,
+            "level_tag": ""
+          },
+          {
+            "id": "step-1765257925019",
+            "seq_type": "GENERAL",
+            "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+            "tmu": 110,
+            "seconds": 0.0,
+            "params": {
+              "A1": 1,
+              "A1_cm": 5,
+              "B1": 0,
+              "G": 3,
+              "A2": 1,
+              "A2_cm": 5,
+              "B2": 0,
+              "P": 6,
+              "M": 0,
+              "X": 0,
+              "I": 0
+            },
+            "station_id": "ST-4-1",
+            "component": "4NVME BP",
+            "tool": "無",
+            "image_url": null,
+            "is_ctq": false,
+            "primary_action": "GET",
+            "hand": "双手",
+            "object_category": "背板",
+            "glove_type": "兩只半指手套",
+            "frequency": 1,
+            "level_tag": ""
+          },
+          {
+            "id": "step-1765257927979",
+            "seq_type": "CONTROLLED",
+            "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+            "tmu": 110,
+            "seconds": 0.0,
+            "params": {
+              "A1": 1,
+              "A1_cm": 5,
+              "B1": 0,
+              "G": 3,
+              "A2": 1,
+              "A2_cm": 5,
+              "B2": 0,
+              "P": 6,
+              "M": 0,
+              "X": 0,
+              "I": 0
+            },
+            "station_id": "ST-4",
+            "component": "4NVME BP",
+            "tool": "無",
+            "image_url": null,
+            "is_ctq": false,
+            "primary_action": "GET",
+            "hand": "双手",
+            "object_category": "背板",
+            "glove_type": "兩只半指手套",
+            "frequency": 1,
+            "level_tag": ""
+          },
+          {
+            "id": "step-1765257928130",
+            "seq_type": "CONTROLLED",
+            "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+            "tmu": 110,
+            "seconds": 0.0,
+            "params": {
+              "A1": 1,
+              "A1_cm": 5,
+              "B1": 0,
+              "G": 3,
+              "A2": 1,
+              "A2_cm": 5,
+              "B2": 0,
+              "P": 6,
+              "M": 0,
+              "X": 0,
+              "I": 0
+            },
+            "station_id": "ST-4",
+            "component": "4NVME BP",
+            "tool": "無",
+            "image_url": null,
+            "is_ctq": false,
+            "primary_action": "GET",
+            "hand": "双手",
+            "object_category": "背板",
+            "glove_type": "兩只半指手套",
+            "frequency": 1,
+            "level_tag": ""
+          },
+          {
+            "id": "step-1765257928291",
+            "seq_type": "CONTROLLED",
+            "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+            "tmu": 110,
+            "seconds": 0.0,
+            "params": {
+              "A1": 1,
+              "A1_cm": 5,
+              "B1": 0,
+              "G": 3,
+              "A2": 1,
+              "A2_cm": 5,
+              "B2": 0,
+              "P": 6,
+              "M": 0,
+              "X": 0,
+              "I": 0
+            },
+            "station_id": "ST-4-1",
+            "component": "4NVME BP",
+            "tool": "無",
+            "image_url": null,
+            "is_ctq": false,
+            "primary_action": "GET",
+            "hand": "双手",
+            "object_category": "背板",
+            "glove_type": "兩只半指手套",
+            "frequency": 1,
+            "level_tag": ""
+          },
+          {
+            "id": "step-1765257928467",
+            "seq_type": "CONTROLLED",
+            "description": "双手 從捡料架 拿取 4NVME BP，GET 到主板",
+            "tmu": 110,
+            "seconds": 0.0,
+            "params": {
+              "A1": 1,
+              "A1_cm": 5,
+              "B1": 0,
+              "G": 3,
+              "A2": 1,
+              "A2_cm": 5,
+              "B2": 0,
+              "P": 6,
+              "M": 0,
+              "X": 0,
+              "I": 0
+            },
+            "station_id": "ST-4",
+            "component": "4NVME BP",
+            "tool": "無",
+            "image_url": null,
+            "is_ctq": false,
+            "primary_action": "GET",
+            "hand": "双手",
+            "object_category": "背板",
+            "glove_type": "兩只半指手套",
+            "frequency": 1,
+            "level_tag": ""
+          }
+        ],
+        "created_by": "user-002",
+        "created_at": "2025-12-09T05:25:33.369204",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "published_by": null,
+        "published_at": null
+      },
+      "description": "Created SOP version: V1.1 for project proj-001"
+    },
+    {
+      "id": "audit-70b9b749",
+      "timestamp": "2025-12-09T05:25:33.449855",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "SOPVersion",
+      "entity_id": "sop-7ac78f0e",
+      "old_value": {
+        "action_count": 0
+      },
+      "new_value": {
+        "action_count": 8
+      },
+      "description": "Updated SOP actions (count: 8)"
+    },
+    {
+      "id": "audit-3f792885",
+      "timestamp": "2025-12-09T05:26:01.397736",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257927979",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-e6893ea0",
+      "timestamp": "2025-12-10T02:24:05.599894",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257924523",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-243ae2ea",
+      "timestamp": "2025-12-10T02:24:06.721286",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257925019",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-4-1"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-4-1"
+    },
+    {
+      "id": "audit-1c786c3b",
+      "timestamp": "2025-12-10T02:24:07.920427",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257928291",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-4-1"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-4-1"
+    },
+    {
+      "id": "audit-21f8a0ca",
+      "timestamp": "2025-12-10T02:24:18.013544",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "CREATE",
+      "entity_type": "Station",
+      "entity_id": "ST-4",
+      "old_value": null,
+      "new_value": {
+        "id": "ST-4",
+        "name": "第4站",
+        "operator": "emp-004 (陳小美)",
+        "skill_level": 0.85
+      },
+      "description": "Created station: 第4站"
+    },
+    {
+      "id": "audit-bf103fa1",
+      "timestamp": "2025-12-10T02:24:20.935375",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257928467",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-4"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-4"
+    },
+    {
+      "id": "audit-b7f65f74",
+      "timestamp": "2025-12-10T02:24:21.885803",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257928130",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-4"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-4"
+    },
+    {
+      "id": "audit-71a59843",
+      "timestamp": "2025-12-10T02:24:27.903115",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257927979",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-4"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-4"
+    },
+    {
+      "id": "audit-77308c0d",
+      "timestamp": "2025-12-10T02:24:45.748880",
+      "user_id": "user-002",
+      "user_name": "張工程師",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-003",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-4"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-4"
+    },
+    {
+      "id": "audit-6084208e",
+      "timestamp": "2025-12-16T07:12:37.771240+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257924523",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-3-1a"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-3-1a"
+    },
+    {
+      "id": "audit-fe0b3af9",
+      "timestamp": "2025-12-16T07:12:38.709141+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257924699",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-10fcc4f4",
+      "timestamp": "2025-12-16T07:12:39.911176+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257924861",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-4353dff1",
+      "timestamp": "2025-12-16T07:12:43.355462+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257924861",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-3-1a"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-3-1a"
+    },
+    {
+      "id": "audit-dac5e6ae",
+      "timestamp": "2025-12-16T07:12:44.521743+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257928291",
+      "old_value": {
+        "station_id": "ST-4-1"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-4-1 to ST-3-1b"
+    },
+    {
+      "id": "audit-8433518f",
+      "timestamp": "2025-12-16T07:12:45.366537+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1765257924699",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-4-1"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-4-1"
+    },
+    {
+      "id": "audit-5f1959e4",
+      "timestamp": "2025-12-18T07:07:52.243544+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "SOPVersion",
+      "entity_id": "sop-7ac78f0e",
+      "old_value": {
+        "action_count": 8
+      },
+      "new_value": {
+        "action_count": 5
+      },
+      "description": "Updated SOP actions (count: 5)"
+    },
+    {
+      "id": "audit-8f193f0f",
+      "timestamp": "2025-12-18T07:08:48.187463+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "APPROVE",
+      "entity_type": "SOPVersion",
+      "entity_id": "sop-7ac78f0e",
+      "old_value": {
+        "status": "Draft"
+      },
+      "new_value": {
+        "status": "Reviewed"
+      },
+      "description": "Changed SOP status: Draft -> Reviewed"
+    },
+    {
+      "id": "audit-4a5044da",
+      "timestamp": "2025-12-18T07:10:22.905934+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1766041589758",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-59ac2113",
+      "timestamp": "2025-12-18T07:10:23.895596+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1766041627262",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-4-1"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-4-1"
+    },
+    {
+      "id": "audit-b634386f",
+      "timestamp": "2025-12-18T07:10:28.057786+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1766041589599",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-4-1"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-4-1"
+    },
+    {
+      "id": "audit-c2949d67",
+      "timestamp": "2025-12-18T07:10:44.312162+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1766041589303",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-9bf5dec8",
+      "timestamp": "2025-12-18T07:10:45.033411+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1766041589758",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-3-1a"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-3-1a"
+    },
+    {
+      "id": "audit-df044a42",
+      "timestamp": "2025-12-18T07:11:11.608266+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1766041589758",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-4"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-4"
+    },
+    {
+      "id": "audit-c789f43c",
+      "timestamp": "2025-12-30T03:25:05.804521+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-002",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-3-1a"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-3-1a"
+    },
+    {
+      "id": "audit-fa8159ac",
+      "timestamp": "2025-12-30T03:25:09.845912+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-002",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-adf0618b",
+      "timestamp": "2026-01-15T03:24:40.418763+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-002",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-3-1a"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-3-1a"
+    },
+    {
+      "id": "audit-29939f42",
+      "timestamp": "2026-01-15T03:24:41.421452+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-001",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-c80352dd",
+      "timestamp": "2026-01-15T03:24:45.122516+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-002",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-9128a7bf",
+      "timestamp": "2026-01-15T03:24:45.781581+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-001",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-3-1a"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-3-1a"
+    },
+    {
+      "id": "audit-3f9fe8e6",
+      "timestamp": "2026-01-19T03:59:00.570559+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-002",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-3-1a"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-3-1a"
+    },
+    {
+      "id": "audit-76b02515",
+      "timestamp": "2026-01-19T05:43:53.285208+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "act-002",
+      "old_value": {
+        "station_id": "ST-3-1a"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-3-1a to ST-3-1b"
+    },
+    {
+      "id": "audit-a6bb7842",
+      "timestamp": "2026-01-28T08:36:33.183261+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "CREATE",
+      "entity_type": "SOPVersion",
+      "entity_id": "sop-c95a781f",
+      "old_value": null,
+      "new_value": {
+        "id": "sop-c95a781f",
+        "project_id": "proj-001",
+        "version_no": "V1.2",
+        "status": "Draft",
+        "actions": [],
+        "created_by": "user-002",
+        "created_at": "2026-01-28T08:36:33.183251+00:00",
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "published_by": null,
+        "published_at": null
+      },
+      "description": "Created SOP version: V1.2 for project proj-001"
+    },
+    {
+      "id": "audit-f937fdce",
+      "timestamp": "2026-01-28T08:36:41.963178+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "LevelSystem",
+      "entity_id": "proj-001",
+      "old_value": null,
+      "new_value": null,
+      "description": "Saved 5 updated, 0 created level entries"
+    },
+    {
+      "id": "audit-dae35390",
+      "timestamp": "2026-03-11T08:23:46.176108+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1766041627262",
+      "old_value": {
+        "station_id": "ST-4-1"
+      },
+      "new_value": {
+        "station_id": "ST-3-1a"
+      },
+      "description": "Reassigned action from ST-4-1 to ST-3-1a"
+    },
+    {
+      "id": "audit-c3e590ca",
+      "timestamp": "2026-03-11T08:23:47.189779+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1766041589303",
+      "old_value": {
+        "station_id": "ST-3-1b"
+      },
+      "new_value": {
+        "station_id": "ST-4-1"
+      },
+      "description": "Reassigned action from ST-3-1b to ST-4-1"
+    },
+    {
+      "id": "audit-4cc2a8ff",
+      "timestamp": "2026-03-11T08:23:47.827165+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "ActionAssignment",
+      "entity_id": "step-1766041589599",
+      "old_value": {
+        "station_id": "ST-4-1"
+      },
+      "new_value": {
+        "station_id": "ST-3-1b"
+      },
+      "description": "Reassigned action from ST-4-1 to ST-3-1b"
+    },
+    {
+      "id": "audit-db114dc8",
+      "timestamp": "2026-03-12T06:15:14.009393+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "CREATE",
+      "entity_type": "LocationLibrary",
+      "entity_id": "loc-770ee054",
+      "old_value": null,
+      "new_value": {
+        "id": "loc-770ee054",
+        "name": "潔淨台"
+      },
+      "description": "Created location: 潔淨台"
+    },
+    {
+      "id": "audit-f4af62f4",
+      "timestamp": "2026-03-12T06:15:17.977782+00:00",
+      "user_id": "user-002",
+      "user_name": "Avery, Yeh",
+      "action": "UPDATE",
+      "entity_type": "LocationLibrary",
+      "entity_id": "loc-770ee054",
+      "old_value": {
+        "id": "loc-770ee054",
+        "name": "潔淨台"
+      },
+      "new_value": {
+        "id": "loc-770ee054",
+        "name": "潔淨台"
+      },
+      "description": "Updated location: 潔淨台"
+    }
+  ],
+  "simulation_results": [
+    {
+      "id": "sim-40f59990",
+      "timestamp": "2025-12-05T14:23:48.718230",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 6.9,
+      "uph": 521,
+      "balance_rate": 0.7,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1a",
+      "total_time": 14.49,
+      "alerts_count": 1,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 6.9,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 4.32,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-215f2397",
+      "timestamp": "2025-12-05T14:23:57.658686",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 9.72,
+      "uph": 370,
+      "balance_rate": 0.53,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 15.39,
+      "alerts_count": 1,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 9.72,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-c264f6c4",
+      "timestamp": "2025-12-05T15:16:55.611715",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 9.72,
+      "uph": 370,
+      "balance_rate": 0.53,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 15.39,
+      "alerts_count": 1,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 9.72,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-72823a0b",
+      "timestamp": "2025-12-05T15:17:22.859456",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 6.0,
+      "uph": 600,
+      "balance_rate": 0.82,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1a",
+      "total_time": 14.67,
+      "alerts_count": 2,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 6.0,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-3d09ddac",
+      "timestamp": "2025-12-09T05:25:51.710795",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 6.0,
+      "uph": 600,
+      "balance_rate": 0.82,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1a",
+      "total_time": 14.67,
+      "alerts_count": 2,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 6.0,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-4ae5b209",
+      "timestamp": "2025-12-09T05:26:04.390554",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 6.0,
+      "uph": 600,
+      "balance_rate": 0.82,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1a",
+      "total_time": 14.67,
+      "alerts_count": 2,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 6.0,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-1a382597",
+      "timestamp": "2025-12-10T02:24:10.209941",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 6.0,
+      "uph": 600,
+      "balance_rate": 0.82,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1a",
+      "total_time": 14.67,
+      "alerts_count": 2,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 6.0,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-354e493c",
+      "timestamp": "2025-12-10T02:24:23.913728",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 6.0,
+      "uph": 600,
+      "balance_rate": 0.61,
+      "num_stations": 4,
+      "bottleneck_station": "ST-3-1a",
+      "total_time": 14.67,
+      "alerts_count": 2,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 6.0,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-4",
+          "operator": "陳小美",
+          "actual_time": 0.0,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-2eb5433f",
+      "timestamp": "2025-12-10T02:24:29.095737",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 6.0,
+      "uph": 600,
+      "balance_rate": 0.61,
+      "num_stations": 4,
+      "bottleneck_station": "ST-3-1a",
+      "total_time": 14.67,
+      "alerts_count": 2,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 6.0,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-4",
+          "operator": "陳小美",
+          "actual_time": 0.0,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-8e26b4be",
+      "timestamp": "2025-12-10T02:24:47.529705",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.75,
+      "num_stations": 4,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 16.16,
+      "alerts_count": 3,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-4",
+          "operator": "陳小美",
+          "actual_time": 5.08,
+          "is_overloaded": true
+        }
+      ]
+    },
+    {
+      "id": "sim-fcc6f797",
+      "timestamp": "2025-12-11T05:19:18.987587",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "張工程師",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-7ddf34c4",
+      "timestamp": "2025-12-18T07:10:31.542274+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "Avery Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-d30a761d",
+      "timestamp": "2025-12-18T07:10:45.956849+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "Avery Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-76fac232",
+      "timestamp": "2025-12-18T07:10:47.114360+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "Avery Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-4317450a",
+      "timestamp": "2025-12-26T03:17:49.694908+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "Avery Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-7250e3df",
+      "timestamp": "2026-01-15T03:24:42.659831+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 4.5,
+      "uph": 799,
+      "balance_rate": 0.79,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1a",
+      "total_time": 10.65,
+      "alerts_count": 0,
+      "created_by": "Avery, Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 4.5,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 2.88,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-92401096",
+      "timestamp": "2026-01-15T03:24:46.909408+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "Avery, Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-9a9ef552",
+      "timestamp": "2026-01-21T14:19:14.876035+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "Avery, Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-b710c40f",
+      "timestamp": "2026-03-11T08:23:31.950125+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "Avery, Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-e54bf85b",
+      "timestamp": "2026-03-11T08:23:48.672545+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "Avery, Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    },
+    {
+      "id": "sim-62f97c9d",
+      "timestamp": "2026-03-12T06:43:04.595999+00:00",
+      "project_id": "proj-001",
+      "takt_time": 5.0,
+      "cycle_time": 5.4,
+      "uph": 666,
+      "balance_rate": 0.68,
+      "num_stations": 3,
+      "bottleneck_station": "ST-3-1b",
+      "total_time": 11.07,
+      "alerts_count": 1,
+      "created_by": "Avery, Yeh",
+      "station_summary": [
+        {
+          "id": "ST-3-1a",
+          "operator": "張組長",
+          "actual_time": 2.4,
+          "is_overloaded": false
+        },
+        {
+          "id": "ST-3-1b",
+          "operator": "李技術員",
+          "actual_time": 5.4,
+          "is_overloaded": true
+        },
+        {
+          "id": "ST-4-1",
+          "operator": "王工程師",
+          "actual_time": 3.27,
+          "is_overloaded": false
+        }
+      ]
+    }
+  ],
+  "level_entries": {
+    "proj-001": [
+      {
+        "id": "lvl-b51ca0eb",
+        "action_id": "act-001",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-5dae262d",
+        "action_id": "act-002",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-0a54135c",
+        "action_id": "act-003",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-cea7ed8d",
+        "action_id": "act-004",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-0bac2851",
+        "action_id": "step-1765257924523",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-6bd8c61b",
+        "action_id": "step-1765257924699",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-576c7abc",
+        "action_id": "step-1765257924861",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-54960838",
+        "action_id": "step-1765257925019",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-dbf2b68d",
+        "action_id": "step-1765257927979",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-40c74187",
+        "action_id": "step-1765257928130",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-19158aa7",
+        "action_id": "step-1765257928291",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-8e1dcc9b",
+        "action_id": "step-1765257928467",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null
+      },
+      {
+        "id": "lvl-a02524d5",
+        "action_id": "step-1766041627120",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null,
+        "sort_order": 0
+      },
+      {
+        "id": "lvl-07fdf540",
+        "action_id": "step-1766041589599",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null,
+        "sort_order": 1
+      },
+      {
+        "id": "lvl-54e7a48e",
+        "action_id": "step-1766041589758",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null,
+        "sort_order": 2
+      },
+      {
+        "id": "lvl-375e8bce",
+        "action_id": "step-1766041589303",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null,
+        "sort_order": 3
+      },
+      {
+        "id": "lvl-66eb7158",
+        "action_id": "step-1766041627262",
+        "difficulty_factor": 1.0,
+        "number_tag": null,
+        "number_count": null,
+        "main_seq": null,
+        "order_seq": null,
+        "cub_group": null,
+        "machine_count": 1,
+        "operator_count": 1,
+        "status_label": null,
+        "sort_order": 4
+      }
+    ]
+  },
+  "_meta": {
+    "saved_at": "2026-03-12T06:43:04.596047+00:00",
+    "version": "1.0"
+  }
+}
