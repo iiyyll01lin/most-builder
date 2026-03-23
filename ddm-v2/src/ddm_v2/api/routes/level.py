@@ -39,6 +39,41 @@ def _find_workspace(store: JsonStore, project_id: str, sop_version_id: str | Non
     return candidates[-1] if candidates else None
 
 
+def _apply_level_meta_to_actions(
+    actions: list[dict],
+    by_action_id: dict,
+    project_id: str,
+    sop_version_id: str | None,
+    step_level_map: dict,
+) -> None:
+    """Stamp level metadata onto a list of action dicts and populate step_level_map."""
+    for action in actions:
+        entry = by_action_id.get(action.get("id"))
+        if entry is None:
+            continue
+        level_tag = _derive_level_tag(entry)
+        action["level_tag"] = level_tag
+        params = action.setdefault("params", {})
+        params["_level"] = {
+            "project_id": project_id,
+            "sop_version_id": sop_version_id,
+            "difficulty_factor": entry.get("difficulty_factor"),
+            "adjusted_ct": entry.get("adjusted_ct"),
+            "effective_cub_ct": entry.get("effective_cub_ct"),
+            "main_seq": entry.get("main_seq"),
+            "order_seq": entry.get("order_seq"),
+            "cub_group": entry.get("cub_group"),
+            "number_tag": entry.get("number_tag"),
+            "number_count": entry.get("number_count"),
+            "status_label": entry.get("status_label"),
+            "sort_order": entry.get("sort_order"),
+        }
+        most_meta = params.get("_most") or {}
+        step_id = most_meta.get("step_id")
+        if step_id:
+            step_level_map[str(step_id)] = {"level_tag": level_tag, "level_meta": params["_level"]}
+
+
 def _propagate_level_metadata(store: JsonStore, project_id: str, sop_version_id: str | None, entries: list[dict]) -> None:
     if not sop_version_id:
         return
@@ -48,61 +83,14 @@ def _propagate_level_metadata(store: JsonStore, project_id: str, sop_version_id:
 
     by_action_id = {entry["action_id"]: entry for entry in entries}
     step_level_map: dict[str, dict] = {}
-    for action in version.get("actions", []):
-        entry = by_action_id.get(action.get("id"))
-        if entry is None:
-            continue
-        level_tag = _derive_level_tag(entry)
-        action["level_tag"] = level_tag
-        params = action.setdefault("params", {})
-        params["_level"] = {
-            "project_id": project_id,
-            "sop_version_id": sop_version_id,
-            "difficulty_factor": entry.get("difficulty_factor"),
-            "adjusted_ct": entry.get("adjusted_ct"),
-            "effective_cub_ct": entry.get("effective_cub_ct"),
-            "main_seq": entry.get("main_seq"),
-            "order_seq": entry.get("order_seq"),
-            "cub_group": entry.get("cub_group"),
-            "number_tag": entry.get("number_tag"),
-            "number_count": entry.get("number_count"),
-            "status_label": entry.get("status_label"),
-            "sort_order": entry.get("sort_order"),
-        }
-        most_meta = params.get("_most") or {}
-        step_id = most_meta.get("step_id")
-        if step_id:
-            step_level_map[str(step_id)] = {"level_tag": level_tag, "level_meta": params["_level"]}
+
+    _apply_level_meta_to_actions(version.get("actions", []), by_action_id, project_id, sop_version_id, step_level_map)
 
     workspace = _find_workspace(store, project_id, sop_version_id)
     if workspace is None:
         return
 
-    for action in workspace.get("actions", []):
-        entry = by_action_id.get(action.get("id"))
-        if entry is None:
-            continue
-        level_tag = _derive_level_tag(entry)
-        action["level_tag"] = level_tag
-        params = action.setdefault("params", {})
-        params["_level"] = {
-            "project_id": project_id,
-            "sop_version_id": sop_version_id,
-            "difficulty_factor": entry.get("difficulty_factor"),
-            "adjusted_ct": entry.get("adjusted_ct"),
-            "effective_cub_ct": entry.get("effective_cub_ct"),
-            "main_seq": entry.get("main_seq"),
-            "order_seq": entry.get("order_seq"),
-            "cub_group": entry.get("cub_group"),
-            "number_tag": entry.get("number_tag"),
-            "number_count": entry.get("number_count"),
-            "status_label": entry.get("status_label"),
-            "sort_order": entry.get("sort_order"),
-        }
-        most_meta = params.get("_most") or {}
-        step_id = most_meta.get("step_id")
-        if step_id:
-            step_level_map[str(step_id)] = {"level_tag": level_tag, "level_meta": params["_level"]}
+    _apply_level_meta_to_actions(workspace.get("actions", []), by_action_id, project_id, sop_version_id, step_level_map)
 
     for step in workspace.get("steps", []):
         step_meta = step_level_map.get(str(step.get("id")))
