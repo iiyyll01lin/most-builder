@@ -15,6 +15,31 @@ def test_login_success_and_profile(client):
 
 
 @pytest.mark.functional
+def test_login_wrong_password_returns_401(client):
+    response = client.post("/api/v1/auth/login", json={"username": "admin", "password": "wrong"})
+    assert response.status_code == 401
+
+
+@pytest.mark.functional
+def test_login_unknown_user_returns_401(client):
+    response = client.post("/api/v1/auth/login", json={"username": "ghost", "password": "anything"})
+    assert response.status_code == 401
+
+
+@pytest.mark.functional
+def test_unauthenticated_request_returns_401(client):
+    """Any protected endpoint without a token must return 403/401."""
+    response = client.get("/api/v1/projects")
+    assert response.status_code in (401, 403)
+
+
+@pytest.mark.functional
+def test_invalid_token_returns_401(client):
+    response = client.get("/api/v1/projects", headers={"Authorization": "Bearer not.a.valid.jwt"})
+    assert response.status_code == 401
+
+
+@pytest.mark.functional
 def test_operator_cannot_create_syntax(client):
     login = client.post("/api/v1/auth/login", json={"username": "operator1", "password": "op123"})
     token = login.json()["access_token"]

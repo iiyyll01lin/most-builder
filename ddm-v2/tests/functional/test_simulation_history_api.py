@@ -90,3 +90,72 @@ def test_simulation_history_delete_and_clear_are_audited(client, engineer_header
     assert audit_response.status_code == 200
     actions = {entry["action"] for entry in audit_response.json()}
     assert {"CREATE", "DELETE"}.issubset(actions)
+
+
+@pytest.mark.functional
+def test_simulation_history_limit_clamps_results(client, engineer_headers, manager_headers):
+    """The limit parameter must be clamped between 1 and 200."""
+    sop_id = _create_simulatable_sop(client, engineer_headers)
+
+    # Create 3 simulation results
+    for _ in range(3):
+        client.post(
+            "/api/v1/simulation/line-balance",
+            headers=engineer_headers,
+            json={
+                "project_id": "proj-atlas",
+                "takt_time": 4.0,
+                "stations": [{"id": "ST-1", "employee_id": "emp-eva", "sop_ids": [sop_id]}],
+            },
+        )
+
+    # limit=1 should return at most 1 result
+    resp_one = client.get("/api/v1/simulation/history?limit=1", headers=engineer_headers)
+    assert resp_one.status_code == 200
+    assert len(resp_one.json()["results"]) == 1
+    assert resp_one.json()["total"] == 3
+
+    # limit=0 is invalid; clamped to 1 — should not return an empty list
+    resp_zero = client.get("/api/v1/simulation/history?limit=0", headers=engineer_headers)
+    assert resp_zero.status_code == 200
+    assert len(resp_zero.json()["results"]) >= 1
+
+    # limit=999 is clamped to 200; all results should still be included
+    resp_large = client.get("/api/v1/simulation/history?limit=999", headers=engineer_headers)
+    assert resp_large.status_code == 200
+    assert resp_large.json()["total"] == len(resp_large.json()["results"])
+
+
+@pytest.mark.functional
+def test_reassign_action_between_stations(client, engineer_headers, manager_headers):
+    """Moving an action to another station must persist and be rejected for wrong source."""
+    sop_id = _create_simulatable_sop(client, engineer_headers)
+
+    # Get the action id we just created
+    sop = client.get(f"/api/v1/sop/versions/{sop_id}", headers=engineer_headers)
+    action_id = sop.json()["actions"][0]["id"]
+
+    # Reassign from ST-1 to ST-2
+    resp = client.post(
+        "/api/v1/simulation/reassign-action",
+        headers=engineer_headers,
+        json={"action_id": action_id, "from_station_id": "ST-1", "to_station_id": "ST-2"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["action"]["station_id"] == "ST-2"
+
+    # Attempting to reassign from the old station (ST-1) must now fail
+    resp_wrong = client.post(
+        "/api/v1/simulation/reassign-action",
+        headers=engineer_headers,
+        json={"action_id": action_id, "from_station_id": "ST-1", "to_station_id": "ST-3"},
+    )
+    assert resp_wrong.status_code == 400
+
+    # Attempting to reassign a non-existent action must return 404
+    resp_missing = client.post(
+        "/api/v1/simulation/reassign-action",
+        headers=engineer_headers,
+        json={"action_id": "act-ghost", "from_station_id": "ST-1", "to_station_id": "ST-2"},
+    )
+    assert resp_missing.status_code == 404

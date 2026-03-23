@@ -45,3 +45,39 @@ def test_build_level_entries_calculates_effective_cub_ct_and_preserves_sort_orde
     assert reordered["act-1"]["adjusted_ct"] == 1.8
     assert reordered["act-1"]["effective_cub_ct"] == 0.9
     assert reordered["act-2"]["row_no"] == 1
+
+
+@pytest.mark.unit
+def test_validate_level_tags_rejects_duplicate_main_seq():
+    """Regression: duplicate main tags with the same sequence value must be flagged."""
+    errors = validate_level_tags(["MAIN-1", "MAIN-2", "MAIN-1"])
+    assert errors
+    assert any("duplicate" in e.lower() for e in errors)
+
+
+@pytest.mark.unit
+def test_validate_level_tags_accepts_distinct_main_seqs():
+    errors = validate_level_tags(["MAIN-1", "MAIN-2", "MAIN-3"])
+    assert errors == []
+
+
+@pytest.mark.unit
+def test_validate_level_tags_skips_empty_tags():
+    """Empty/blank tags must be ignored without error."""
+    errors = validate_level_tags(["", "MAIN-1", "", "MAIN-2"])
+    assert errors == []
+
+
+@pytest.mark.unit
+def test_build_level_entries_preserves_existing_fields_for_unknown_actions():
+    """Actions not in existing_entries should use all defaults without error."""
+    entries = build_level_entries(
+        "proj-x",
+        [{"id": "act-new", "description": "New", "seconds": 1.0, "frequency": 1}],
+        existing_entries=[],
+    )
+    assert entries[0]["difficulty_factor"] == 1.0
+    assert entries[0]["adjusted_ct"] == 1.0
+    assert entries[0]["effective_cub_ct"] is None
+    assert entries[0]["machine_count"] == 1
+    assert entries[0]["operator_count"] == 1

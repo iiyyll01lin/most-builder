@@ -39,12 +39,33 @@
         "A3": 1
       },
       "frequency": 1
+    },
+    {
+      "action": "Place",
+      "primary_action": "Place",
+      "object": "Cover",
+      "object_category": "Housing",
+      "seq_type": "GENERAL",
+      "hand": "Right Hand",
+      "from_location": "Fixture",
+      "to_location": "Chassis",
+      "params": {
+        "A1": 3,
+        "B1": 0,
+        "G": 1,
+        "A2": 3,
+        "B2": 0,
+        "P": 1
+      },
+      "frequency": 1,
+      "return_a_cm": 70.0
     }
   ],
   "expected": {
-    "total_tmu": 37,
-    "total_seconds": 1.33,
+    "total_tmu": 45,
+    "total_seconds": 1.62,
     "first_index_string": "A1 B0 G3 A1 B0 P3 A1",
-    "second_auto_sentence": "Right Hand Inspect Motherboard from Fixture to Fixture"
+    "second_auto_sentence": "Right Hand Inspect Motherboard from Fixture to Fixture",
+    "third_index_string": "A3 B0 G1 A3 B0 P1 A32"
   }
 }

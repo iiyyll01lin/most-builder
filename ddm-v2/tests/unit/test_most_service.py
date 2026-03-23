@@ -105,3 +105,48 @@ def test_simo_and_collaborative_summaries_are_reported_together():
     assert result.simo_seconds == 0.68
     assert result.collaborative_effective_tmu == 33
     assert result.collaborative_effective_seconds == 1.19
+
+
+@pytest.mark.unit
+def test_lookup_a_index_max_is_65cm_not_120cm():
+    """Regression: boundary between A24 and A32 must be 65 cm (per MiniMOST spec).
+
+    Previously the code used 120 cm, causing distances between 65.1–120 cm to
+    return index 24 instead of the correct 32.
+    """
+    # 65 cm is the last distance that maps to index 24
+    index_at_65 = generate_index_string({}, "GENERAL", return_a_cm=65.0)
+    assert index_at_65.endswith("A24"), f"A3 at 65 cm should be A24, got: {index_at_65}"
+
+    # 65.1 cm crosses the boundary and must map to index 32
+    index_at_65_1 = generate_index_string({}, "GENERAL", return_a_cm=65.1)
+    assert index_at_65_1.endswith("A32"), f"A3 at 65.1 cm should be A32, got: {index_at_65_1}"
+
+    # The previously-wrong upper bound: 120 cm must also map to A32
+    index_at_120 = generate_index_string({}, "GENERAL", return_a_cm=120.0)
+    assert index_at_120.endswith("A32"), f"A3 at 120 cm should be A32, got: {index_at_120}"
+
+
+@pytest.mark.unit
+def test_generate_index_string_default_a3_uses_return_a_cm():
+    """When A3 is not in params, it is inferred from return_a_cm."""
+    # 15 cm → index 6
+    s = generate_index_string({"A1": 1, "B1": 0, "G": 1, "A2": 1, "B2": 0, "P": 1}, "GENERAL", return_a_cm=15.0)
+    assert s == "A1 B0 G1 A1 B0 P1 A6"
+
+
+@pytest.mark.unit
+def test_generate_index_string_explicit_a3_overrides_return_a_cm():
+    """An explicit A3 in params must not be overridden by return_a_cm."""
+    s = generate_index_string({"A1": 1, "B1": 0, "G": 1, "A2": 1, "B2": 0, "P": 1, "A3": 3}, "GENERAL", return_a_cm=200.0)
+    assert s == "A1 B0 G1 A1 B0 P1 A3"
+
+
+@pytest.mark.unit
+def test_calculate_workflow_empty_steps_returns_zero_totals():
+    result = calculate_workflow([])
+    assert result.total_tmu == 0
+    assert result.total_seconds == 0.0
+    assert result.breakdown == []
+    assert result.simo_max_tmu is None
+    assert result.collaborative_effective_tmu is None

@@ -56,6 +56,38 @@ def test_most_workspace_roundtrip_export_and_import(client, engineer_headers):
 
 
 @pytest.mark.functional
+def test_workspace_get_returns_empty_workspace_for_new_project(client, engineer_headers):
+    """A GET before any save must return a valid empty workspace structure."""
+    response = client.get("/api/v1/most/workspaces/proj-orion", headers=engineer_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["steps"] == []
+    assert body["wi_components"] == []
+    assert body["project_id"] == "proj-orion"
+    assert body["summary"]["total_tmu"] == 0
+
+
+@pytest.mark.functional
+def test_workspace_get_returns_404_for_unknown_project(client, engineer_headers):
+    """A workspace GET for a non-existent project must return 404."""
+    response = client.get("/api/v1/most/workspaces/proj-not-real", headers=engineer_headers)
+    assert response.status_code == 404
+
+
+@pytest.mark.functional
+def test_workspace_save_requires_engineer_or_manager(client):
+    """Operators must not be able to save workspaces."""
+    login = client.post("/api/v1/auth/login", json={"username": "operator1", "password": "op123"})
+    op_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.put(
+        "/api/v1/most/workspaces/proj-atlas",
+        headers=op_headers,
+        json={"steps": [], "wi_components": [], "selected_step_ids": []},
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.functional
 def test_workspace_actions_can_be_saved_into_sop_with_trace_fields(client, engineer_headers):
     workspace = client.put(
         "/api/v1/most/workspaces/proj-orion",
