@@ -2,6 +2,13 @@ services:
   ddm-v2:
     build:
       context: .
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
     image: ddm-v2:202603-rc1
     container_name: ddm-v2
     restart: unless-stopped
