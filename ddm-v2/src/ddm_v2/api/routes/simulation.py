@@ -73,6 +73,7 @@ def reassign(payload: ActionReassignRequest, store: JsonStore = Depends(get_stor
 
 @router.get("/history")
 def history(project_id: str | None = None, limit: int = 20, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    limit = max(1, min(limit, 200))
     results = list(store.list_collection("simulation_results"))
     if project_id:
         results = [result for result in results if result["project_id"] == project_id]

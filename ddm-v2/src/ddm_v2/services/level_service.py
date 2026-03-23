@@ -6,12 +6,17 @@ from collections import defaultdict
 def validate_level_tags(tags: list[str]) -> list[str]:
     errors: list[str] = []
     seen_main = False
+    seen_main_seqs: set[str] = set()
     for index, tag in enumerate(tags, start=1):
         if not tag:
             continue
         normalized = tag.lower()
         if normalized.startswith("main"):
             seen_main = True
+            seq_key = normalized.lstrip("main").lstrip("-").strip()
+            if seq_key in seen_main_seqs:
+                errors.append(f"Row {index}: duplicate main tag '{tag}'.")
+            seen_main_seqs.add(seq_key)
         if normalized.startswith("sub") and not seen_main:
             errors.append(f"Row {index}: sub tag cannot appear before main tag.")
         if normalized.startswith("cub") and "." in normalized:
