@@ -13,9 +13,12 @@ RUN useradd --create-home --shell /usr/sbin/nologin appuser
 
 COPY pyproject.toml README.md ./
 COPY src ./src
+COPY docker-wheels/ /tmp/wheels/
 
-RUN pip install --upgrade pip \
-    && pip install -e . \
+RUN pip install --upgrade pip --no-index --find-links=/tmp/wheels \
+    && pip install --no-index --find-links=/tmp/wheels \
+        fastapi "uvicorn[standard]" pydantic PyJWT python-multipart \
+    && pip install --no-build-isolation --no-index --find-links=/tmp/wheels -e . \
     && mkdir -p /app/data \
     && chown -R appuser:appuser /app
 
