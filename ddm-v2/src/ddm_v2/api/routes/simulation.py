@@ -28,15 +28,18 @@ def simulate(payload: LineBalanceRequest, store: JsonStore = Depends(get_store),
                 "sop_ids": list(assignment.sop_ids or []),
             }
         )
-    result = run_line_balance(
-        project_id=payload.project_id,
-        takt_time=payload.takt_time,
-        station_assignments=stations,
-        employees=store.list_collection("employees"),
-        sop_versions=store.list_collection("sop_versions"),
-        glove_rules=store.list_collection("glove_rules"),
-        ion_fan_bindings=store.list_collection("ion_fan_bindings"),
-    )
+    try:
+        result = run_line_balance(
+            project_id=payload.project_id,
+            takt_time=payload.takt_time,
+            station_assignments=stations,
+            employees=store.list_collection("employees"),
+            sop_versions=store.list_collection("sop_versions"),
+            glove_rules=store.list_collection("glove_rules"),
+            ion_fan_bindings=store.list_collection("ion_fan_bindings"),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     snapshot = result.model_dump()
     snapshot.update({
         "id": store.new_id("sim"),

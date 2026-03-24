@@ -82,6 +82,7 @@ def save_workspace(
         raw_wi_components=payload.wi_components,
         selected_step_ids=payload.selected_step_ids,
         workspace_id=existing.get("id") if existing else store.new_id("mostws"),
+        glove_rules=store.list_collection("glove_rules"),
     )
     snapshot["id"] = snapshot.get("id") or store.new_id("mostws")
     if existing:

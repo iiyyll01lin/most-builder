@@ -5,6 +5,27 @@ from copy import deepcopy
 from ddm_v2.schemas import LineBalanceResponse, SkillLevel, StationResult
 
 
+def _simo_adjusted_standard_time(actions: list[dict]) -> float:
+    """Compute SIMO-adjusted station standard time.
+
+    Actions that share a ``simo_group_id`` and are marked ``is_simo`` are
+    treated as simultaneous: only the bottleneck (max seconds) action in each
+    group is counted.  Actions without a simo_group_id contribute normally.
+    This prevents overcounting when both left-hand and right-hand operations
+    are executed in parallel on the same station.
+    """
+    simo_groups: dict[str, float] = {}
+    non_simo_total = 0.0
+    for action in actions:
+        simo_gid = action.get("simo_group_id")
+        if action.get("is_simo") and simo_gid:
+            seconds = float(action.get("seconds", 0))
+            simo_groups[simo_gid] = max(simo_groups.get(simo_gid, 0.0), seconds)
+        else:
+            non_simo_total += float(action.get("seconds", 0))
+    return non_simo_total + sum(simo_groups.values())
+
+
 def run_line_balance(
     project_id: str,
     takt_time: float,
@@ -35,11 +56,18 @@ def run_line_balance(
         employee_id = station.get("employee_id") or (default_employee.get("id") if default_employee else None)
         employee = employee_map.get(employee_id) if employee_id else None
         if employee is None:
-            alerts.append(f"Employee {station.get('employee_id')} not found for station {station['id']}.")
-            continue
+            # Hard fault: an unresolvable employee assignment produces incorrect
+            # cycle time and UPH values.  Surface the error immediately so the
+            # IE/PE can fix the station assignment before re-running simulation.
+            resolved_id = station.get("employee_id") or "(none)"
+            raise ValueError(
+                f"Station '{station['id']}' references employee '{resolved_id}' "
+                "which does not exist in the employee roster. "
+                "Assign a valid employee to this station before running line balance."
+            )
 
         station_actions = [action for action in all_actions if action.get("station_id") == station["id"]]
-        standard_time = round(sum(float(action.get("seconds", 0)) for action in station_actions), 2)
+        standard_time = round(_simo_adjusted_standard_time(station_actions), 2)
         efficiency = float(employee.get("efficiency_factor", 1.0)) or 1.0
         actual_time = round(standard_time / efficiency, 2)
         cycle_time = max(cycle_time, actual_time)
@@ -112,3 +140,4 @@ def run_line_balance(
         alerts=alerts,
         station_results=station_results,
     )
+
