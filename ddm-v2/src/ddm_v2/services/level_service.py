@@ -3,6 +3,22 @@ from __future__ import annotations
 from collections import defaultdict
 
 
+def _is_main_tag(normalized: str) -> bool:
+    """Return True only for tags that are exactly 'main' or start with 'main-'
+    or 'main ' — preventing false positives on words like 'maintenance'."""
+    return normalized == "main" or normalized.startswith("main-") or normalized.startswith("main ")
+
+
+def _numeric_seq_key(seq: str) -> tuple[float, str]:
+    """Sort key that treats seq as a float for numeric seqs (e.g. '10' > '2'),
+    falling back to (inf, original_string) for non-numeric values so they
+    sort deterministically after all numeric entries."""
+    try:
+        return (float(seq), "")
+    except ValueError:
+        return (float("inf"), seq)
+
+
 def validate_level_tags(tags: list[str]) -> list[str]:
     errors: list[str] = []
     seen_main = False
@@ -11,9 +27,9 @@ def validate_level_tags(tags: list[str]) -> list[str]:
         if not tag:
             continue
         normalized = tag.lower()
-        if normalized.startswith("main"):
+        if _is_main_tag(normalized):
             seen_main = True
-            seq_key = normalized.lstrip("main").lstrip("-").strip()
+            seq_key = normalized[len("main"):].lstrip("-").strip()
             if seq_key in seen_main_seqs:
                 errors.append(f"Row {index}: duplicate main tag '{tag}'.")
             seen_main_seqs.add(seq_key)
@@ -68,6 +84,44 @@ def build_level_entries(project_id: str, sop_actions: list[dict], existing_entri
     return result
 
 
+def _detect_precedence_cycles(edges: list[dict]) -> list[str]:
+    """Kahn's algorithm topological sort; returns a list of error messages if
+    cycles are found.  Each message names the action IDs involved so IE/PE can
+    immediately locate the problem in the Level System UI."""
+    from collections import deque
+
+    in_degree: dict[str, int] = {}
+    adjacency: dict[str, list[str]] = {}
+    all_nodes: set[str] = set()
+
+    for edge in edges:
+        src, dst = edge["from"], edge["to"]
+        all_nodes.update([src, dst])
+        adjacency.setdefault(src, []).append(dst)
+        in_degree.setdefault(dst, 0)
+        in_degree.setdefault(src, 0)
+        in_degree[dst] += 1
+
+    queue: deque[str] = deque(node for node in all_nodes if in_degree.get(node, 0) == 0)
+    visited = 0
+    while queue:
+        node = queue.popleft()
+        visited += 1
+        for neighbor in adjacency.get(node, []):
+            in_degree[neighbor] -= 1
+            if in_degree[neighbor] == 0:
+                queue.append(neighbor)
+
+    if visited < len(all_nodes):
+        cycle_nodes = [node for node in all_nodes if in_degree.get(node, 0) > 0]
+        return [
+            f"Precedence cycle detected involving action(s): {', '.join(sorted(cycle_nodes))}. "
+            "A cyclic precedence constraint means this SOP can never be executed in sequence. "
+            "Review the Main/Order sequencing fields for these actions."
+        ]
+    return []
+
+
 def build_precedence_graph(level_entries: list[dict]) -> dict:
     nodes = []
     precedence_edges = []
@@ -104,10 +158,11 @@ def build_precedence_graph(level_entries: list[dict]) -> dict:
                 {"limit": entry.get("number_count") or 1, "actions": []},
             )["actions"].append(entry["action_id"])
 
-    main_order.sort(key=lambda value: value[0])
+    main_order.sort(key=lambda value: _numeric_seq_key(value[0]))
     for left, right in zip(main_order, main_order[1:]):
         precedence_edges.append({"from": left[1], "to": right[1], "type": "main"})
 
+    cycle_errors = _detect_precedence_cycles(precedence_edges)
     return {
         "nodes": nodes,
         "precedence_edges": precedence_edges,
@@ -115,4 +170,5 @@ def build_precedence_graph(level_entries: list[dict]) -> dict:
         "number_constraints": number_constraints,
         "total_adjusted_ct": round(sum(node["adjusted_ct"] for node in nodes), 2),
         "total_effective_ct": round(sum(node["effective_ct"] for node in nodes), 2),
+        "cycle_errors": cycle_errors,
     }
