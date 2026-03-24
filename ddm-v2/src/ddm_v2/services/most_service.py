@@ -116,10 +116,57 @@ def infer_glove(object_category: str | None, explicit_glove: str | None = None) 
     return PREFERRED_GLOVES.get(object_category, "General Glove")
 
 
+def _compute_simo_adjusted_tmu(
+    steps: list[MOSTStep],
+    tmu_per_step: list[int],
+) -> tuple[int | None, dict[str, list[int]]]:
+    """Compute the SIMO-adjusted total TMU and the raw SIMO groups used for
+    the legacy simo_max_tmu field.
+
+    SIMO semantics: when steps are marked simultaneous and share a
+    ``simo_group_id``, both hands work in parallel — the effective time for
+    that group equals the bottleneck (max) TMU, not the sum.
+
+    Grouping strategy:
+    - If ``simo_group_id`` is set, steps are grouped by that ID.  Within each
+      group only the maximum TMU is counted toward the adjusted total.
+    - If ``simo_group_id`` is *not* set (legacy / in-flight data) the step is
+      kept as-is in the adjusted total; it contributes ``tmu`` individually.
+
+    Returns:
+        (simo_adjusted_total_tmu, legacy_hand_groups)
+        ``simo_adjusted_total_tmu`` is None when no SIMO groups are present.
+    """
+    # Groups keyed by simo_group_id → list of TMUs in that group.
+    grouped: dict[str, list[int]] = defaultdict(list)
+    # Legacy: hand-label groups for backward-compat simo_max_tmu field.
+    hand_groups: dict[str, list[int]] = defaultdict(list)
+    non_simo_sum = 0
+
+    for step, tmu in zip(steps, tmu_per_step):
+        if not step.is_simo:
+            non_simo_sum += tmu
+            continue
+        hand_groups[step.hand or "BOTH"].append(tmu)
+        if step.simo_group_id:
+            grouped[step.simo_group_id].append(tmu)
+        else:
+            # No group ID: cannot pair correctly; treat as individual.
+            non_simo_sum += tmu
+
+    if not grouped and not hand_groups:
+        return None, dict(hand_groups)
+
+    simo_contribution = sum(max(values) for values in grouped.values())
+    has_grouped_simo = bool(grouped)
+    adjusted = non_simo_sum + simo_contribution if has_grouped_simo else None
+    return adjusted, dict(hand_groups)
+
+
 def calculate_workflow(steps: list[MOSTStep]) -> MOSTCalculateResponse:
     tmu_factor = get_settings().tmu_factor
     total_tmu = 0
-    simo_groups: dict[str, list[int]] = defaultdict(list)
+    tmu_per_step: list[int] = []
     collaborative_effective_tmu = 0
     breakdown: list[MOSTBreakdown] = []
 
@@ -134,8 +181,7 @@ def calculate_workflow(steps: list[MOSTStep]) -> MOSTCalculateResponse:
                 effective_tmu = max(op_values)
         collaborative_effective_tmu += effective_tmu if effective_tmu is not None else tmu
         total_tmu += tmu
-        if step.is_simo:
-            simo_groups[step.hand or "BOTH"].append(tmu)
+        tmu_per_step.append(tmu)
         action_key = (step.primary_action or step.action).strip().lower()
         breakdown.append(
             MOSTBreakdown(
@@ -159,8 +205,18 @@ def calculate_workflow(steps: list[MOSTStep]) -> MOSTCalculateResponse:
             )
         )
 
-    simo_max_tmu = max((max(values) for values in simo_groups.values()), default=None)
+    simo_adjusted_total_tmu, hand_groups = _compute_simo_adjusted_tmu(steps, tmu_per_step)
+    simo_max_tmu = (
+        max((max(values) for values in hand_groups.values()), default=None)
+        if hand_groups
+        else None
+    )
     simo_seconds = round(simo_max_tmu * tmu_factor, 2) if simo_max_tmu is not None else None
+    simo_adjusted_total_seconds = (
+        round(simo_adjusted_total_tmu * tmu_factor, 2)
+        if simo_adjusted_total_tmu is not None
+        else None
+    )
     total_seconds = round(total_tmu * tmu_factor, 2)
     collaborative_effective_seconds = round(collaborative_effective_tmu * tmu_factor, 2)
 
@@ -170,6 +226,8 @@ def calculate_workflow(steps: list[MOSTStep]) -> MOSTCalculateResponse:
         breakdown=breakdown,
         simo_max_tmu=simo_max_tmu,
         simo_seconds=simo_seconds,
+        simo_adjusted_total_tmu=simo_adjusted_total_tmu,
+        simo_adjusted_total_seconds=simo_adjusted_total_seconds,
         collaborative_effective_tmu=collaborative_effective_tmu if collaborative_effective_tmu != total_tmu else None,
         collaborative_effective_seconds=collaborative_effective_seconds if collaborative_effective_tmu != total_tmu else None,
     )

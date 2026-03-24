@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class UserRole(str, Enum):
@@ -208,10 +208,29 @@ class MOSTStep(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
     frequency: int = 1
     is_simo: bool = False
+    simo_group_id: str | None = None
     return_a_cm: float = 0.0
     is_collaborative: bool = False
     operator_count: int = 1
     operators: list[OperatorTime] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _validate_collaborative_semantics(self) -> "MOSTStep":
+        if self.is_collaborative and self.operator_count < 2:
+            raise ValueError(
+                f"Collaborative step '{self.action}' requires operator_count >= 2 "
+                f"(got {self.operator_count}). A two-person simultaneous assembly "
+                "must define at least 2 operators. Increase operator_count or "
+                "disable is_collaborative."
+            )
+        if self.is_collaborative and 0 < len(self.operators) < 2:
+            raise ValueError(
+                f"Collaborative step '{self.action}' lists {len(self.operators)} "
+                "operator(s), but at least 2 are required for a valid two-person "
+                "assembly step. Add the missing operator's individual_tmu or "
+                "disable is_collaborative."
+            )
+        return self
 
 
 class MOSTCalculateRequest(BaseModel):
@@ -244,6 +263,10 @@ class MOSTCalculateResponse(BaseModel):
     breakdown: list[MOSTBreakdown]
     simo_max_tmu: int | None = None
     simo_seconds: float | None = None
+    # SIMO-adjusted totals: replaces total_tmu/total_seconds when simultaneous
+    # motions are present, taking only the bottleneck hand per SIMO group.
+    simo_adjusted_total_tmu: int | None = None
+    simo_adjusted_total_seconds: float | None = None
     collaborative_effective_tmu: int | None = None
     collaborative_effective_seconds: float | None = None
 
@@ -318,7 +341,7 @@ class StationAssignment(BaseModel):
 class LineBalanceRequest(BaseModel):
     project_id: str
     stations: list[StationAssignment]
-    takt_time: float
+    takt_time: float = Field(gt=0, description="Takt time in seconds; must be greater than zero")
 
 
 class StationResult(BaseModel):
