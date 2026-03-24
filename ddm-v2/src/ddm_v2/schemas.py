@@ -2,9 +2,36 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field, model_validator
+
+T = TypeVar("T")
+
+
+class ErrorCode(str, Enum):
+    not_found = "NOT_FOUND"
+    forbidden = "FORBIDDEN"
+    unauthorized = "UNAUTHORIZED"
+    validation_error = "VALIDATION_ERROR"
+    invalid_transition = "INVALID_STATUS_TRANSITION"
+    conflict = "CONFLICT"
+    bad_request = "BAD_REQUEST"
+    internal_error = "INTERNAL_ERROR"
+
+
+class ErrorDetail(BaseModel):
+    error_code: ErrorCode
+    message: str
+    detail: Any = None
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    page: int
+    size: int
+    pages: int
 
 
 class UserRole(str, Enum):
