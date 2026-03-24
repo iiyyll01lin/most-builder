@@ -6,7 +6,6 @@ from typing import Any
 from ddm_v2.schemas import MOSTBreakdown, MOSTCalculateResponse, MOSTStep
 from ddm_v2.settings import get_settings
 
-
 ACTION_CODE_MAP = {
     "grab": "G",
     "place": "P",

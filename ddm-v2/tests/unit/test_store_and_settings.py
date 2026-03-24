@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from ddm_v2.repositories.store import JsonStore
 from ddm_v2 import settings as settings_module
+from ddm_v2.repositories.store import JsonStore
 
 
 @pytest.mark.unit

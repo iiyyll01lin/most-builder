@@ -7,7 +7,6 @@ from ddm_v2.repositories.store import JsonStore
 from ddm_v2.schemas import LoginRequest, TokenResponse, UserSummary
 from ddm_v2.services.auth_service import create_access_token
 
-
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 

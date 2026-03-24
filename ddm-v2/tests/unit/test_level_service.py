@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from ddm_v2.services.level_service import build_level_entries, build_precedence_graph, validate_level_tags
+from ddm_v2.services.level_service import (
+    build_level_entries,
+    build_precedence_graph,
+    validate_level_tags,
+)
 
 
 @pytest.mark.unit

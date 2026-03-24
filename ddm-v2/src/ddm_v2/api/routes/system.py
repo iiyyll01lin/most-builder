@@ -9,7 +9,6 @@ from ddm_v2.repositories.store import JsonStore
 from ddm_v2.schemas import AuditAction, UserRole
 from ddm_v2.settings import get_settings
 
-
 router = APIRouter(prefix="/api/v1", tags=["system"])
 
 

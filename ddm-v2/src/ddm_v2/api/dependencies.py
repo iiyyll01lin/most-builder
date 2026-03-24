@@ -10,7 +10,6 @@ from ddm_v2.repositories.store import JsonStore
 from ddm_v2.schemas import UserRole
 from ddm_v2.services.auth_service import decode_access_token
 
-
 security = HTTPBearer()
 
 

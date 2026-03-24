@@ -6,8 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from ddm_v2.api.dependencies import get_current_user, get_store, require_roles
 from ddm_v2.repositories.store import JsonStore
-from ddm_v2.schemas import AuditAction, SOPCreateRequest, SOPStatus, SOPUpdateStatusRequest, UserRole
-
+from ddm_v2.schemas import (
+    AuditAction,
+    SOPCreateRequest,
+    SOPStatus,
+    SOPUpdateStatusRequest,
+    UserRole,
+)
 
 router = APIRouter(prefix="/api/v1/sop", tags=["sop"])
 

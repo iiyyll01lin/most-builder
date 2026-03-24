@@ -6,9 +6,13 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 
 from ddm_v2.api.dependencies import get_current_user, get_store, require_roles
 from ddm_v2.repositories.store import JsonStore
-from ddm_v2.schemas import ActionReassignRequest, AuditAction, LineBalanceRequest, UserRole
+from ddm_v2.schemas import (
+    ActionReassignRequest,
+    AuditAction,
+    LineBalanceRequest,
+    UserRole,
+)
 from ddm_v2.services.simulation_service import run_line_balance
-
 
 router = APIRouter(prefix="/api/v1/simulation", tags=["simulation"])
 

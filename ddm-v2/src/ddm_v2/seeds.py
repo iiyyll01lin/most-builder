@@ -4,7 +4,6 @@ from copy import deepcopy
 
 from ddm_v2.schemas import SkillLevel, SOPStatus, UserRole
 
-
 DEFAULT_STATE = {
     "users": {
         "admin": {

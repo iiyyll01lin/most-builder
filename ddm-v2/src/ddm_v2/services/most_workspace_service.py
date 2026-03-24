@@ -8,7 +8,6 @@ from ddm_v2.schemas import MOSTStep
 from ddm_v2.services.most_service import calculate_workflow
 from ddm_v2.settings import get_settings
 
-
 MOST_STEP_KEYS = {
     "action",
     "object",

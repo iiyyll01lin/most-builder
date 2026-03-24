@@ -4,9 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from ddm_v2.api.dependencies import get_current_user, get_store, require_roles
 from ddm_v2.repositories.store import JsonStore
-from ddm_v2.schemas import AuditAction, LevelSystemSaveRequest, LevelSystemSyncRequest, UserRole
+from ddm_v2.schemas import (
+    AuditAction,
+    LevelSystemSaveRequest,
+    LevelSystemSyncRequest,
+    UserRole,
+)
 from ddm_v2.services.level_service import build_level_entries, build_precedence_graph
-
 
 router = APIRouter(prefix="/api/v1/level-system", tags=["level-system"])
 

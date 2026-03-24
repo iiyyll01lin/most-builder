@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import shutil
@@ -10,8 +11,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
-
-import fcntl
 
 from ddm_v2.schemas import AuditAction
 from ddm_v2.seeds import build_default_state
