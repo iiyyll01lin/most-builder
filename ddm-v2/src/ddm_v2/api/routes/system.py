@@ -28,14 +28,34 @@ def project_detail(project_id: str, store: JsonStore = Depends(get_store), _: di
 
 
 @router.get("/audit/logs")
-def audit_logs(limit: int = 100, entity_type: str | None = None, store: JsonStore = Depends(get_store), user: dict = Depends(get_current_user)):
+def audit_logs(
+    limit: int = 100,
+    entity_type: str | None = None,
+    page: int | None = None,
+    size: int = 50,
+    store: JsonStore = Depends(get_store),
+    user: dict = Depends(get_current_user),
+):
+    import math
+
+    from fastapi.responses import JSONResponse
+
     logs = list(store.list_collection("audit_logs"))
     if user["role"] != UserRole.manager.value:
         logs = [entry for entry in logs if entry["user_id"] == user["id"]]
     if entity_type:
         logs = [entry for entry in logs if entry["entity_type"] == entity_type]
     logs.sort(key=lambda entry: entry["timestamp"], reverse=True)
-    return logs[:limit]
+    total = len(logs)
+
+    if page is not None:
+        size = max(1, min(size, 200))
+        offset = (page - 1) * size
+        pages = math.ceil(total / size) if size else 1
+        return {"items": logs[offset : offset + size], "total": total, "page": page, "size": size, "pages": pages}
+
+    # Legacy behaviour: bare list with X-Total-Count header
+    return JSONResponse(content=logs[:limit], headers={"X-Total-Count": str(total)})
 
 
 @router.get("/health")

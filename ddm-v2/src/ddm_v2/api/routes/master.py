@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import math
+
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import JSONResponse
 
 from ddm_v2.api.dependencies import get_current_user, get_store, require_roles
 from ddm_v2.repositories.store import JsonStore
@@ -17,6 +20,19 @@ from ddm_v2.schemas import (
 )
 
 router = APIRouter(prefix="/api/v1/master", tags=["master"])
+
+
+def _paginate(items: list, page: int | None, size: int) -> JSONResponse:
+    """Return a PaginatedResponse when *page* is given, else a bare-list with X-Total-Count header."""
+    total = len(items)
+    if page is not None:
+        size = max(1, min(size, 500))
+        offset = (page - 1) * size
+        pages = math.ceil(total / size) if size else 1
+        return JSONResponse(
+            content={"items": items[offset : offset + size], "total": total, "page": page, "size": size, "pages": pages},
+        )
+    return JSONResponse(content=items, headers={"X-Total-Count": str(total)})
 
 
 def _create_item(store: JsonStore, collection: str, prefix: str, payload: dict) -> dict:
@@ -43,8 +59,8 @@ def _delete_item(store: JsonStore, collection: str, item_id: str) -> None:
 
 
 @router.get("/syntax")
-def list_syntax(store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    return store.list_collection("syntax_library")
+def list_syntax(page: int | None = None, size: int = 50, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    return _paginate(list(store.list_collection("syntax_library")), page, size)
 
 
 @router.post("/syntax", status_code=201)
@@ -84,8 +100,8 @@ def delete_syntax(
 
 
 @router.get("/components")
-def list_components(store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    return store.list_collection("component_library")
+def list_components(page: int | None = None, size: int = 50, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    return _paginate(list(store.list_collection("component_library")), page, size)
 
 
 @router.post("/components", status_code=201)
@@ -112,8 +128,8 @@ def delete_component(item_id: str, store: JsonStore = Depends(get_store), user: 
 
 
 @router.get("/tools")
-def list_tools(store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    return store.list_collection("tool_library")
+def list_tools(page: int | None = None, size: int = 50, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    return _paginate(list(store.list_collection("tool_library")), page, size)
 
 
 @router.post("/tools", status_code=201)
@@ -140,8 +156,8 @@ def delete_tool(item_id: str, store: JsonStore = Depends(get_store), user: dict 
 
 
 @router.get("/locations")
-def list_locations(store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    return store.list_collection("location_library")
+def list_locations(page: int | None = None, size: int = 50, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    return _paginate(list(store.list_collection("location_library")), page, size)
 
 
 @router.post("/locations", status_code=201)
@@ -168,8 +184,8 @@ def delete_location(item_id: str, store: JsonStore = Depends(get_store), user: d
 
 
 @router.get("/objects")
-def list_objects(store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    return store.list_collection("object_library")
+def list_objects(page: int | None = None, size: int = 50, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    return _paginate(list(store.list_collection("object_library")), page, size)
 
 
 @router.post("/objects", status_code=201)
@@ -196,8 +212,8 @@ def delete_object(item_id: str, store: JsonStore = Depends(get_store), user: dic
 
 
 @router.get("/employees")
-def list_employees(store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    return store.list_collection("employees")
+def list_employees(page: int | None = None, size: int = 50, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    return _paginate(list(store.list_collection("employees")), page, size)
 
 
 @router.post("/employees", status_code=201)
