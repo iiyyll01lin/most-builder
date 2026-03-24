@@ -214,4 +214,6 @@ def test_simulation_returns_422_for_unknown_employee_in_station(client, engineer
         },
     )
     assert response.status_code == 422
-    assert "emp-does-not-exist" in response.json()["detail"]
+    body = response.json()
+    error_text = body.get("message") or str(body.get("detail") or "")
+    assert "emp-does-not-exist" in error_text
