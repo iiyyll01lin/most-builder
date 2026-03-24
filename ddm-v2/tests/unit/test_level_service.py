@@ -81,3 +81,62 @@ def test_build_level_entries_preserves_existing_fields_for_unknown_actions():
     assert entries[0]["effective_cub_ct"] is None
     assert entries[0]["machine_count"] == 1
     assert entries[0]["operator_count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 hardening tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_build_precedence_graph_sorts_main_seq_numerically_not_lexicographically():
+    """Regression for string-sort bug: main_seq '10' must come after '9', not
+    between '1' and '2' as it would under lexicographic ordering.  A wrong
+    ordering here directly corrupts the production SOP sequence on the floor."""
+    entries = [
+        {
+            "action_id": f"act-{i}", "description": f"Step {i}", "ct_seconds": 1.0,
+            "difficulty_factor": 1.0, "adjusted_ct": 1.0, "effective_cub_ct": None,
+            "main_seq": str(i), "order_seq": None, "cub_group": None,
+            "number_tag": None, "number_count": None,
+            "machine_count": 1, "operator_count": 1, "status_label": None,
+        }
+        for i in [1, 2, 10, 11, 3]
+    ]
+    graph = build_precedence_graph(entries)
+    edge_sequence = [e["from"] for e in graph["precedence_edges"]]
+    # Expected order: 1 -> 2 -> 3 -> 10 -> 11
+    assert edge_sequence == ["act-1", "act-2", "act-3", "act-10"]
+
+
+@pytest.mark.unit
+def test_build_precedence_graph_reports_no_cycles_for_valid_dag():
+    """A strictly sequential main_seq=1,2,3 produces an acyclic graph."""
+    entries = [
+        {
+            "action_id": k, "description": k, "ct_seconds": 1.0,
+            "difficulty_factor": 1.0, "adjusted_ct": 1.0, "effective_cub_ct": None,
+            "main_seq": v, "order_seq": None, "cub_group": None,
+            "number_tag": None, "number_count": None,
+            "machine_count": 1, "operator_count": 1, "status_label": None,
+        }
+        for k, v in [("a", "1"), ("b", "2"), ("c", "3")]
+    ]
+    graph = build_precedence_graph(entries)
+    assert graph["cycle_errors"] == []
+
+
+@pytest.mark.unit
+def test_validate_level_tags_does_not_flag_maintenance_as_main_tag():
+    """'maintenance' must NOT be treated as a 'main' tag.  If treated as main,
+    subsequent 'sub' tags would incorrectly pass validation."""
+    errors = validate_level_tags(["maintenance", "sub-1"])
+    # 'sub-1' before any real MAIN tag should be an error
+    assert any("sub tag cannot appear before main tag" in e for e in errors)
+
+
+@pytest.mark.unit
+def test_validate_level_tags_correctly_identifies_main_dash_prefix():
+    """'main-1' is a valid main tag; 'sub-1' after it must not raise an error."""
+    errors = validate_level_tags(["main-1", "sub-1"])
+    assert errors == []

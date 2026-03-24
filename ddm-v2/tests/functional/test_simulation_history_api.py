@@ -159,3 +159,59 @@ def test_reassign_action_between_stations(client, engineer_headers, manager_head
         json={"action_id": "act-ghost", "from_station_id": "ST-1", "to_station_id": "ST-2"},
     )
     assert resp_missing.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 hardening: takt_time and missing-employee guard
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.functional
+def test_simulation_rejects_zero_takt_time(client, engineer_headers):
+    """A takt_time of 0 is physically meaningless; the API must reject it with
+    a 422 Unprocessable Entity so the PE knows to provide a valid cycle target."""
+    response = client.post(
+        "/api/v1/simulation/line-balance",
+        headers=engineer_headers,
+        json={
+            "project_id": "proj-atlas",
+            "takt_time": 0,
+            "stations": [{"id": "ST-1", "employee_id": "emp-eva", "sop_ids": []}],
+        },
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.functional
+def test_simulation_rejects_negative_takt_time(client, engineer_headers):
+    """Negative takt time is semantically impossible and must be rejected."""
+    response = client.post(
+        "/api/v1/simulation/line-balance",
+        headers=engineer_headers,
+        json={
+            "project_id": "proj-atlas",
+            "takt_time": -1.0,
+            "stations": [{"id": "ST-1", "employee_id": "emp-eva", "sop_ids": []}],
+        },
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.functional
+def test_simulation_returns_422_for_unknown_employee_in_station(client, engineer_headers):
+    """If a station assignment uses an employee_id that not in the roster, the
+    API must return 422 with a clear, actionable error message rather than
+    silently dropping the station and producing wrong cycle time/UPH data."""
+    response = client.post(
+        "/api/v1/simulation/line-balance",
+        headers=engineer_headers,
+        json={
+            "project_id": "proj-atlas",
+            "takt_time": 4.0,
+            "stations": [
+                {"id": "ST-1", "employee_id": "emp-does-not-exist", "sop_ids": []},
+            ],
+        },
+    )
+    assert response.status_code == 422
+    assert "emp-does-not-exist" in response.json()["detail"]
