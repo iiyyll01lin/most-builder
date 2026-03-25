@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from copy import deepcopy
 
 from ddm_v2.schemas import LineBalanceResponse, SkillLevel, StationResult
@@ -34,7 +35,13 @@ def run_line_balance(
     sop_versions: list[dict],
     glove_rules: list[dict],
     ion_fan_bindings: list[dict],
+    progress_callback: Callable[[int, str], None] | None = None,
 ) -> LineBalanceResponse:
+    def _emit(pct: int, msg: str) -> None:
+        if progress_callback is not None:
+            progress_callback(pct, msg)
+
+    _emit(5, "Resolving SOP actions")
     selected_sop_ids = {
         sop_id
         for assignment in station_assignments
@@ -52,7 +59,11 @@ def run_line_balance(
     total_actual_time = 0.0
     cycle_time = 0.0
 
-    for station in station_assignments:
+    _emit(15, "Building employee roster map")
+
+    station_count_total = max(len(station_assignments), 1)
+    for station_index, station in enumerate(station_assignments):
+        _emit(15 + int(65 * station_index / station_count_total), f"Processing station {station.get('id', station_index + 1)}")
         employee_id = station.get("employee_id") or (default_employee.get("id") if default_employee else None)
         employee = employee_map.get(employee_id) if employee_id else None
         if employee is None:
@@ -128,10 +139,12 @@ def run_line_balance(
 
     station_count = len(station_results)
     balance_rate = 0.0
+    _emit(85, "Computing balance metrics")
     if station_count and cycle_time:
         balance_rate = round(total_actual_time / (cycle_time * station_count), 2)
     bottleneck_station = max(station_results, key=lambda station: station.actual_time).id if station_results else "N/A"
     uph = int(3600 / cycle_time) if cycle_time else 0
+    _emit(95, "Finalizing results")
     return LineBalanceResponse(
         bottleneck_station=bottleneck_station,
         cycle_time=round(cycle_time, 2),

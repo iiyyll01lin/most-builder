@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+import jwt
+from fastapi import APIRouter, Depends, HTTPException, Response, WebSocket, WebSocketDisconnect
 
 from ddm_v2.api.dependencies import get_current_user, get_store, require_roles
 from ddm_v2.repositories.store import JsonStore
@@ -12,16 +16,25 @@ from ddm_v2.schemas import (
     LineBalanceRequest,
     UserRole,
 )
+from ddm_v2.services.auth_service import decode_access_token
 from ddm_v2.services.simulation_service import run_line_balance
 
 router = APIRouter(prefix="/api/v1/simulation", tags=["simulation"])
 
+# Thread pool used for running CPU-bound simulation in non-blocking mode.
+_executor: ThreadPoolExecutor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="sim-worker")
 
-@router.post("/line-balance")
-def simulate(payload: LineBalanceRequest, store: JsonStore = Depends(get_store), user: dict = Depends(get_current_user)):
-    stations = []
-    station_lookup = {station["id"]: station for station in store.list_collection("stations")}
-    default_employee_id = store.list_collection("employees")[0]["id"] if store.list_collection("employees") else None
+# Pending jobs submitted via POST /line-balance/async.
+# Key: job_id  Value: snapshot of all data needed to run the simulation.
+# Populated by the POST handler; consumed (and deleted) by the WS handler.
+_pending_jobs: dict[str, dict[str, Any]] = {}
+
+
+def _build_station_list(payload: LineBalanceRequest, store: JsonStore) -> list[dict[str, Any]]:
+    station_lookup = {s["id"]: s for s in store.list_collection("stations")}
+    employees = store.list_collection("employees")
+    default_employee_id = employees[0]["id"] if employees else None
+    stations: list[dict[str, Any]] = []
     for assignment in payload.stations:
         station = station_lookup.get(assignment.id, {"id": assignment.id, "name": assignment.id})
         stations.append(
@@ -32,6 +45,12 @@ def simulate(payload: LineBalanceRequest, store: JsonStore = Depends(get_store),
                 "sop_ids": list(assignment.sop_ids or []),
             }
         )
+    return stations
+
+
+@router.post("/line-balance")
+def simulate(payload: LineBalanceRequest, store: JsonStore = Depends(get_store), user: dict = Depends(get_current_user)):
+    stations = _build_station_list(payload, store)
     try:
         result = run_line_balance(
             project_id=payload.project_id,
@@ -62,6 +81,140 @@ def simulate(payload: LineBalanceRequest, store: JsonStore = Depends(get_store),
         new_value={"project_id": payload.project_id, "station_count": len(payload.stations)},
     )
     return result
+
+
+@router.post("/line-balance/async", status_code=202)
+async def simulate_async(
+    payload: LineBalanceRequest,
+    store: JsonStore = Depends(get_store),
+    user: dict = Depends(get_current_user),
+) -> dict[str, str]:
+    """Submit a line-balance simulation job and return a job_id immediately.
+
+    Connect to ``WS /api/v1/simulation/ws/{job_id}?token=<bearer>`` to
+    receive real-time progress events and the final result payload.
+    """
+    job_id = store.new_id("job")
+    # Snapshot all store data the simulation needs so the background thread
+    # never touches the live store (thread-safety).
+    _pending_jobs[job_id] = {
+        "payload": payload,
+        "user": user,
+        "stations": _build_station_list(payload, store),
+        "employees": list(store.list_collection("employees")),
+        "sop_versions": list(store.list_collection("sop_versions")),
+        "glove_rules": list(store.list_collection("glove_rules")),
+        "ion_fan_bindings": list(store.list_collection("ion_fan_bindings")),
+        "store": store,
+    }
+    return {"job_id": job_id, "status": "accepted"}
+
+
+@router.websocket("/ws/{job_id}")
+async def ws_line_balance(
+    websocket: WebSocket,
+    job_id: str,
+    token: str | None = None,
+) -> None:
+    """Stream real-time progress events for a simulation submitted via POST /line-balance/async.
+
+    Authentication: pass the bearer token as ?token=<value> query parameter.
+    Events are JSON objects: ``{"progress": <0-100>, "status": "<message>"}``.
+    The final event carries ``"progress": 100`` plus a ``"result"`` key with
+    the full ``LineBalanceResponse`` payload.
+    """
+    # Resolve the store directly from the ASGI app state — WebSocket objects do
+    # not participate in the standard HTTP dependency graph so we bypass Depends.
+    store: JsonStore = websocket.app.state.store
+    # Authenticate before accepting the WebSocket upgrade.
+    if token is None:
+        await websocket.close(code=4001)
+        return
+    try:
+        jwt_payload = decode_access_token(token)
+    except jwt.PyJWTError:
+        await websocket.close(code=4001)
+        return
+    username = jwt_payload.get("sub")
+    user = store.state["users"].get(username) if username else None
+    if user is None:
+        await websocket.close(code=4001)
+        return
+
+    job = _pending_jobs.pop(job_id, None)
+    if job is None:
+        await websocket.close(code=4004)
+        return
+
+    await websocket.accept()
+
+    loop = asyncio.get_running_loop()
+    queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+
+    def _progress_cb(pct: int, msg: str) -> None:
+        loop.call_soon_threadsafe(queue.put_nowait, {"progress": pct, "status": msg})
+
+    def _run_simulation() -> None:
+        payload: LineBalanceRequest = job["payload"]
+        job_store: JsonStore = job["store"]
+        try:
+            result = run_line_balance(
+                project_id=payload.project_id,
+                takt_time=payload.takt_time,
+                station_assignments=job["stations"],
+                employees=job["employees"],
+                sop_versions=job["sop_versions"],
+                glove_rules=job["glove_rules"],
+                ion_fan_bindings=job["ion_fan_bindings"],
+                progress_callback=_progress_cb,
+            )
+            snapshot = result.model_dump()
+            snapshot.update({
+                "id": job_store.new_id("sim"),
+                "timestamp": datetime.now(UTC).isoformat(),
+                "project_id": payload.project_id,
+                "created_by": job["user"]["name"],
+            })
+            job_store._raw_list("simulation_results").append(snapshot)
+            job_store.save()
+            job_store.audit(
+                job["user"],
+                AuditAction.create,
+                "simulation-result",
+                snapshot["id"],
+                f"Created line balance simulation for {payload.project_id}",
+                new_value={"project_id": payload.project_id, "station_count": len(payload.stations)},
+            )
+            loop.call_soon_threadsafe(
+                queue.put_nowait,
+                {"progress": 100, "status": "complete", "result": snapshot},
+            )
+        except ValueError as exc:
+            loop.call_soon_threadsafe(
+                queue.put_nowait,
+                {"progress": -1, "status": "error", "error": str(exc)},
+            )
+        except Exception:
+            loop.call_soon_threadsafe(
+                queue.put_nowait,
+                {"progress": -1, "status": "error", "error": "Internal simulation error"},
+            )
+
+    loop.run_in_executor(_executor, _run_simulation)
+
+    try:
+        while True:
+            event = await asyncio.wait_for(queue.get(), timeout=120.0)
+            await websocket.send_json(event)
+            if event.get("progress") in (100, -1):
+                break
+    except (WebSocketDisconnect, asyncio.TimeoutError):
+        pass
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 
 
 @router.post("/reassign-action")

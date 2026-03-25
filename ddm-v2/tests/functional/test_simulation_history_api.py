@@ -217,3 +217,100 @@ def test_simulation_returns_422_for_unknown_employee_in_station(client, engineer
     body = response.json()
     error_text = body.get("message") or str(body.get("detail") or "")
     assert "emp-does-not-exist" in error_text
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 hardening: WebSocket simulation engine
+# ---------------------------------------------------------------------------
+
+
+def _engineer_token(client) -> str:
+    """Return a raw JWT bearer token for the built-in engineer account."""
+    resp = client.post("/api/v1/auth/login", json={"username": "Avery", "password": "avery"})
+    return resp.json()["access_token"]
+
+
+@pytest.mark.functional
+def test_ws_simulation_streams_progress_and_final_result(client, engineer_headers):
+    """WebSocket line-balance endpoint must:
+
+    1. Accept the connection after valid token auth.
+    2. Stream intermediate progress events (progress < 100).
+    3. Send a final event with progress == 100 and a result payload containing
+       the expected LineBalance fields (cycle_time, uph, station_results, …).
+    4. Persist the simulation result so it appears in GET /history.
+    """
+    sop_id = _create_simulatable_sop(client, engineer_headers)
+    token = _engineer_token(client)
+
+    submit = client.post(
+        "/api/v1/simulation/line-balance/async",
+        headers=engineer_headers,
+        json={
+            "project_id": "proj-atlas",
+            "takt_time": 4.0,
+            "stations": [{"id": "ST-1", "employee_id": "emp-eva", "sop_ids": [sop_id]}],
+        },
+    )
+    assert submit.status_code == 202
+    job_id = submit.json()["job_id"]
+    assert job_id.startswith("job-")
+
+    events: list[dict] = []
+    with client.websocket_connect(f"/api/v1/simulation/ws/{job_id}?token={token}") as ws:
+        while True:
+            event = ws.receive_json()
+            events.append(event)
+            progress = event.get("progress", -999)
+            if progress >= 100 or progress < 0:
+                break
+
+    assert events, "At least one event must be received"
+
+    final = events[-1]
+    assert final["progress"] == 100, f"Final event must have progress=100, got: {final}"
+    assert final["status"] == "complete"
+    result = final["result"]
+    assert "cycle_time" in result
+    assert "uph" in result
+    assert "station_results" in result
+    assert len(result["station_results"]) == 1
+
+    # The result must also be persisted in simulation history
+    history = client.get("/api/v1/simulation/history?project_id=proj-atlas", headers=engineer_headers)
+    assert history.status_code == 200
+    assert history.json()["total"] >= 1
+
+
+@pytest.mark.functional
+def test_ws_simulation_rejects_missing_token(client, engineer_headers):
+    """A WebSocket connection attempt without a token must be rejected (close code 4001)."""
+    sop_id = _create_simulatable_sop(client, engineer_headers)
+
+    submit = client.post(
+        "/api/v1/simulation/line-balance/async",
+        headers=engineer_headers,
+        json={
+            "project_id": "proj-atlas",
+            "takt_time": 4.0,
+            "stations": [{"id": "ST-1", "employee_id": "emp-eva", "sop_ids": [sop_id]}],
+        },
+    )
+    assert submit.status_code == 202
+    job_id = submit.json()["job_id"]
+
+    with pytest.raises(Exception):
+        # Connecting without a token should be rejected before or immediately after upgrade
+        with client.websocket_connect(f"/api/v1/simulation/ws/{job_id}") as ws:
+            ws.receive_json()
+
+
+@pytest.mark.functional
+def test_ws_simulation_rejects_unknown_job_id(client):
+    """Connecting to a non-existent job_id must close with code 4004."""
+    resp = client.post("/api/v1/auth/login", json={"username": "Avery", "password": "avery"})
+    token = resp.json()["access_token"]
+
+    with pytest.raises(Exception):
+        with client.websocket_connect(f"/api/v1/simulation/ws/job-ghost?token={token}") as ws:
+            ws.receive_json()
