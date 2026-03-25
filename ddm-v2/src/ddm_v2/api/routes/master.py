@@ -22,24 +22,9 @@ from ddm_v2.schemas import (
 router = APIRouter(prefix="/api/v1/master", tags=["master"])
 
 
-def _paginate(items: list, page: int | None, size: int) -> JSONResponse:
-    """Return a PaginatedResponse when *page* is given, else a bare-list with X-Total-Count header."""
-    total = len(items)
-    if page is not None:
-        size = max(1, min(size, 500))
-        offset = (page - 1) * size
-        pages = math.ceil(total / size) if size else 1
-        return JSONResponse(
-            content={"items": items[offset : offset + size], "total": total, "page": page, "size": size, "pages": pages},
-        )
-    return JSONResponse(content=items, headers={"X-Total-Count": str(total)})
-
-
 def _create_item(store: JsonStore, collection: str, prefix: str, payload: dict) -> dict:
     record = {**payload, "id": store.new_id(prefix)}
-    store.list_collection(collection).append(record)
-    store.save()
-    return record
+    return store.upsert_collection_item(collection, record)
 
 
 def _update_item(store: JsonStore, collection: str, item_id: str, payload: dict) -> dict:
@@ -56,6 +41,19 @@ def _delete_item(store: JsonStore, collection: str, item_id: str) -> None:
     removed = store.delete_collection_item(collection, item_id)
     if removed is None:
         raise HTTPException(status_code=404, detail="Item not found")
+
+
+def _paginate(items: list, page: int | None, size: int) -> JSONResponse | list:
+    """Return a PaginatedResponse dict when page is given, else a bare list with X-Total-Count header."""
+    total = len(items)
+    if page is not None:
+        size = max(1, min(size, 500))
+        offset = (page - 1) * size
+        pages = math.ceil(total / size) if size else 1
+        return JSONResponse(
+            content={"items": items[offset : offset + size], "total": total, "page": page, "size": size, "pages": pages},
+        )
+    return JSONResponse(content=items, headers={"X-Total-Count": str(total)})
 
 
 @router.get("/syntax")

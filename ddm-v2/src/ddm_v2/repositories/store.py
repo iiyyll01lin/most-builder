@@ -5,6 +5,8 @@ import json
 import os
 import shutil
 import tempfile
+import threading
+import time
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import UTC, datetime
@@ -15,14 +17,38 @@ from uuid import uuid4
 from ddm_v2.schemas import AuditAction
 from ddm_v2.seeds import build_default_state
 
+# Collections whose contents change rarely and are safe to serve from a
+# short-lived in-process snapshot.  All other collections keep the old
+# "live reference" behaviour so that direct list mutations work correctly.
+_CACHEABLE_COLLECTIONS: frozenset[str] = frozenset(
+    {
+        "syntax_library",
+        "component_library",
+        "tool_library",
+        "location_library",
+        "object_library",
+        "glove_rules",
+        "ion_fan_bindings",
+        "mi_naming_rules",
+        "from_locations",
+        "to_locations",
+        "reference_points",
+        "precautions",
+    }
+)
+
 
 class JsonStore:
+    _CACHE_TTL: float = 300.0  # seconds
+
     def __init__(self, db_path: Path):
         self.db_path = db_path
         self.lock_path = db_path.with_suffix(f"{db_path.suffix}.lock")
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.lock_path.parent.mkdir(parents=True, exist_ok=True)
         self.state = build_default_state()
+        self._cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
+        self._cache_lock = threading.Lock()
         self.load()
 
     @contextmanager
@@ -70,6 +96,11 @@ class JsonStore:
     def save(self) -> None:
         with self._exclusive_lock():
             self._write_state_locked()
+        self._invalidate_cache()
+
+    def _invalidate_cache(self) -> None:
+        with self._cache_lock:
+            self._cache.clear()
 
     def reset(self) -> None:
         self.state = build_default_state()
@@ -78,17 +109,46 @@ class JsonStore:
     def new_id(self, prefix: str) -> str:
         return f"{prefix}-{uuid4().hex[:8]}"
 
-    def list_collection(self, key: str) -> list[dict[str, Any]]:
+    def _raw_list(self, key: str) -> list[dict[str, Any]]:
+        """Return a live reference to the in-memory collection (bypasses cache).
+
+        Use this for all write paths so that mutations reach ``self.state``
+        directly and are not silently discarded via a cached deep copy.
+        """
         return self.state.setdefault(key, [])
 
+    def list_collection(self, key: str) -> list[dict[str, Any]]:
+        """Return collection data.
+
+        For cacheable master-data keys a deep-copy snapshot is returned from
+        the in-process TTL cache (populated on first miss, invalidated on
+        every ``save()``).  All other keys return a live reference to
+        ``self.state`` so that callers can still mutate freely.
+        """
+        if key not in _CACHEABLE_COLLECTIONS:
+            return self._raw_list(key)
+
+        now = time.monotonic()
+        with self._cache_lock:
+            entry = self._cache.get(key)
+            if entry is not None:
+                ts, snapshot = entry
+                if now - ts < self._CACHE_TTL:
+                    return deepcopy(snapshot)
+            # Cache miss — copy live state into the cache, return a fresh copy
+            live = self._raw_list(key)
+            snapshot = deepcopy(live)
+            self._cache[key] = (now, snapshot)
+            return deepcopy(snapshot)
+
     def find_by_id(self, key: str, item_id: str) -> dict[str, Any] | None:
-        for item in self.list_collection(key):
+        for item in self._raw_list(key):
             if item.get("id") == item_id:
                 return item
         return None
 
     def upsert_collection_item(self, key: str, item: dict[str, Any]) -> dict[str, Any]:
-        collection = self.list_collection(key)
+        collection = self._raw_list(key)
         for index, existing in enumerate(collection):
             if existing.get("id") == item.get("id"):
                 collection[index] = item
@@ -99,7 +159,7 @@ class JsonStore:
         return item
 
     def delete_collection_item(self, key: str, item_id: str) -> dict[str, Any] | None:
-        collection = self.list_collection(key)
+        collection = self._raw_list(key)
         for index, existing in enumerate(collection):
             if existing.get("id") == item_id:
                 removed = collection.pop(index)
@@ -129,6 +189,6 @@ class JsonStore:
             "old_value": deepcopy(old_value),
             "new_value": deepcopy(new_value),
         }
-        self.list_collection("audit_logs").append(entry)
+        self._raw_list("audit_logs").append(entry)
         self.save()
         return entry
