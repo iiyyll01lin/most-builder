@@ -67,6 +67,7 @@ export interface SOPAction {
   level_tag?: string
   is_simo: boolean
   simo_group_id?: string
+  required_skill?: string
 }
 
 export interface SOPVersion {
@@ -193,6 +194,7 @@ export interface StationAssignment {
   id: string
   sop_ids: string[]
   employee_id?: string
+  machine_count?: number
 }
 
 export interface LineBalanceRequest {
@@ -215,6 +217,46 @@ export interface StationResult {
   ctq_actions: string[]
   ion_fan_required: boolean
   ion_fan_targets: string[]
+  machine_count?: number
+  machine_effective_time?: number | null
+  skill_alerts?: string[]
+}
+
+// ─── Master Data ──────────────────────────────────────────────────────────────
+
+export interface EmployeeEntry {
+  id: string
+  name: string
+  skill_level: SkillLevel
+  efficiency_factor: number
+  certifications: string[]
+}
+
+export interface ObjectEntry {
+  id: string
+  name: string
+  category: string
+  glove_type?: string
+  is_ctq?: boolean
+  required_skill?: string
+}
+
+export interface StationEntry {
+  id: string
+  name: string
+  employee_id?: string
+}
+
+// ─── MI Naming ────────────────────────────────────────────────────────────────
+
+export interface MINamingValidateRequest {
+  fields: Record<string, string>
+}
+
+export interface MINamingValidateResponse {
+  is_valid: boolean
+  errors: string[]
+  suggested_name: string | null
 }
 
 export interface LineBalanceResponse {

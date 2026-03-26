@@ -1,10 +1,25 @@
 import { useState, useCallback, useRef } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { submitLineBalanceJob, connectSimulationWs } from '@/api/simulation'
+import { fetchStations, fetchEmployees } from '@/api/master'
 import { useAuthStore } from '@/store/authStore'
 import { ProgressBar } from './ui/ProgressBar'
-import type { LineBalanceRequest, LineBalanceResponse, SimProgressEvent } from '@/api/types'
+import { Combobox } from './ui/Combobox'
+import type {
+  LineBalanceRequest,
+  LineBalanceResponse,
+  SimProgressEvent,
+  StationResult,
+} from '@/api/types'
+
+// ─── Local station config ──────────────────────────────────────────────────────
+
+interface StationConfig {
+  stationId: string
+  employeeId: string
+  machineCount: number
+}
 
 // ─── Station result card ──────────────────────────────────────────────────────
 
@@ -12,10 +27,13 @@ function StationCard({
   station,
   taktTime,
 }: {
-  station: LineBalanceResponse['station_results'][number]
+  station: StationResult
   taktTime: number
 }) {
   const pct = Math.min(100, (station.actual_time / taktTime) * 100)
+  const hasSkillAlerts = (station.skill_alerts?.length ?? 0) > 0
+  const is1p2m = (station.machine_count ?? 1) > 1
+
   return (
     <div
       className={[
@@ -25,21 +43,33 @@ function StationCard({
           : 'border-gray-700 bg-gray-800/40',
       ].join(' ')}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
           <p className="text-sm font-semibold text-gray-100">{station.name}</p>
           <p className="text-xs text-gray-400">{station.operator} · {station.skill_level}</p>
         </div>
-        {station.is_overloaded && (
-          <span className="shrink-0 rounded bg-red-800 px-2 py-0.5 text-xs text-red-100">
-            OVERLOADED
-          </span>
-        )}
-        {station.ion_fan_required && (
-          <span className="shrink-0 rounded bg-blue-800 px-2 py-0.5 text-xs text-blue-100">
-            ION FAN
-          </span>
-        )}
+        <div className="flex flex-wrap gap-1">
+          {station.is_overloaded && (
+            <span className="shrink-0 rounded bg-red-800 px-2 py-0.5 text-xs text-red-100">
+              OVERLOADED
+            </span>
+          )}
+          {hasSkillAlerts && (
+            <span className="shrink-0 rounded bg-red-900 px-2 py-0.5 text-xs text-red-200 font-semibold">
+              ⚠ SKILL ALERT
+            </span>
+          )}
+          {is1p2m && (
+            <span className="shrink-0 rounded bg-orange-900/70 px-2 py-0.5 text-xs text-orange-200">
+              1P{station.machine_count}M
+            </span>
+          )}
+          {station.ion_fan_required && (
+            <span className="shrink-0 rounded bg-blue-800 px-2 py-0.5 text-xs text-blue-100">
+              ION FAN
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Utilization bar */}
@@ -76,6 +106,12 @@ function StationCard({
             {station.actual_time.toFixed(2)}s
           </span>
         </div>
+        {is1p2m && station.machine_effective_time != null && (
+          <div>
+            <span className="text-gray-500">EFF CT: </span>
+            <span className="text-orange-300">{station.machine_effective_time.toFixed(2)}s</span>
+          </div>
+        )}
         <div>
           <span className="text-gray-500">Actions: </span>
           <span className="text-gray-200">{station.actions.length}</span>
@@ -95,6 +131,15 @@ function StationCard({
           ))}
         </div>
       )}
+
+      {/* Skill alerts */}
+      {hasSkillAlerts && (
+        <div className="space-y-1 rounded bg-red-950/40 border border-red-800/40 p-2">
+          {station.skill_alerts!.map((alert, i) => (
+            <p key={i} className="text-[10px] text-red-300 leading-tight">⚠ {alert}</p>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -104,6 +149,8 @@ function StationCard({
 interface SimulationPanelProps {
   projectId: string
   initialRequest?: Omit<LineBalanceRequest, 'project_id'>
+  /** Active SOP version ID — assigned to every station's sop_ids */
+  activeSopVersionId?: string
 }
 
 type SimState = 'idle' | 'running' | 'complete' | 'error'
@@ -113,7 +160,7 @@ interface ProgressState {
   status: string
 }
 
-export function SimulationPanel({ projectId, initialRequest }: SimulationPanelProps) {
+export function SimulationPanel({ projectId, initialRequest, activeSopVersionId }: SimulationPanelProps) {
   const token = useAuthStore((s) => s.token)
 
   const [simState, setSimState] = useState<SimState>('idle')
@@ -123,7 +170,56 @@ export function SimulationPanel({ projectId, initialRequest }: SimulationPanelPr
   >(null)
   const [taktTime, setTaktTime] = useState(initialRequest?.takt_time ?? 60)
 
+  // Station configuration rows
+  const [stationConfigs, setStationConfigs] = useState<StationConfig[]>(
+    () =>
+      (initialRequest?.stations ?? []).map((s) => ({
+        stationId: s.id,
+        employeeId: s.employee_id ?? '',
+        machineCount: s.machine_count ?? 1,
+      })),
+  )
+
   const cleanupWsRef = useRef<(() => void) | null>(null)
+
+  // ── Master data for selectors ──────────────────────────────────────────────
+  const { data: masterStations = [] } = useQuery({
+    queryKey: ['master-stations'],
+    queryFn: fetchStations,
+    staleTime: 60_000,
+  })
+  const { data: masterEmployees = [] } = useQuery({
+    queryKey: ['master-employees'],
+    queryFn: fetchEmployees,
+    staleTime: 60_000,
+  })
+
+  const stationOptions = masterStations.map((s) => ({ value: s.id, label: s.name }))
+  const employeeOptions = masterEmployees.map((e) => ({
+    value: e.id,
+    label: `${e.name} (${e.skill_level})`,
+  }))
+
+  // ── Station config CRUD ────────────────────────────────────────────────────
+  const addStation = useCallback(() => {
+    setStationConfigs((prev) => [
+      ...prev,
+      { stationId: '', employeeId: '', machineCount: 1 },
+    ])
+  }, [])
+
+  const removeStation = useCallback((idx: number) => {
+    setStationConfigs((prev) => prev.filter((_, i) => i !== idx))
+  }, [])
+
+  const updateStation = useCallback(
+    (idx: number, field: keyof StationConfig, val: string | number) => {
+      setStationConfigs((prev) =>
+        prev.map((c, i) => (i === idx ? { ...c, [field]: val } : c)),
+      )
+    },
+    [],
+  )
 
   const jobMutation = useMutation({
     mutationFn: (payload: LineBalanceRequest) => submitLineBalanceJob(payload),
@@ -166,23 +262,33 @@ export function SimulationPanel({ projectId, initialRequest }: SimulationPanelPr
     },
   })
 
+  const isRunning = simState === 'running' || jobMutation.isPending
+  const configuredStations = stationConfigs.filter((c) => c.stationId)
+
   const handleRun = useCallback(() => {
     cleanupWsRef.current?.()
     setResult(null)
     setSimState('idle')
     setProgress({ pct: 0, status: '' })
 
-    // Build a minimal payload — real usage would collect station config from UI
     const payload: LineBalanceRequest = {
       project_id: projectId,
       takt_time: taktTime,
-      stations: initialRequest?.stations ?? [],
+      stations: stationConfigs
+        .filter((c) => c.stationId)
+        .map((c) => ({
+          id: c.stationId,
+          sop_ids: activeSopVersionId ? [activeSopVersionId] : [],
+          employee_id: c.employeeId || undefined,
+          machine_count: c.machineCount,
+        })),
     }
     jobMutation.mutate(payload)
-  }, [projectId, taktTime, initialRequest, jobMutation])
+  }, [projectId, taktTime, stationConfigs, activeSopVersionId, jobMutation])
 
   return (
     <section className="space-y-4 rounded-2xl border border-gray-700 bg-gray-900/50 p-5">
+      {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-base font-semibold text-gray-100">Line Balance Simulation</h2>
@@ -197,21 +303,21 @@ export function SimulationPanel({ projectId, initialRequest }: SimulationPanelPr
               step={1}
               value={taktTime}
               onChange={(e) => setTaktTime(Number(e.target.value))}
-              disabled={simState === 'running'}
+              disabled={isRunning}
               className="w-20 rounded bg-gray-800 border border-gray-600 px-2 py-1 text-gray-100 text-xs focus:border-cyan-500 focus:outline-none disabled:opacity-50"
             />
           </label>
           <button
             onClick={handleRun}
-            disabled={simState === 'running' || jobMutation.isPending}
+            disabled={isRunning || configuredStations.length === 0}
             className={[
               'rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500',
-              simState === 'running' || jobMutation.isPending
+              isRunning || configuredStations.length === 0
                 ? 'cursor-not-allowed bg-gray-700 text-gray-500'
                 : 'bg-cyan-600 text-white hover:bg-cyan-500',
             ].join(' ')}
           >
-            {simState === 'running' ? 'Running…' : 'Run Simulation'}
+            {isRunning ? 'Running…' : 'Run Simulation'}
           </button>
           {(simState === 'complete' || simState === 'error') && (
             <button
@@ -222,6 +328,74 @@ export function SimulationPanel({ projectId, initialRequest }: SimulationPanelPr
             </button>
           )}
         </div>
+      </div>
+
+      {/* Station configurator */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Station Configuration
+          </p>
+          <button
+            onClick={addStation}
+            disabled={isRunning}
+            className="rounded border border-gray-600 px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-700 disabled:opacity-40 transition-colors"
+          >
+            + Add Station
+          </button>
+        </div>
+
+        {stationConfigs.length === 0 && (
+          <p className="text-xs text-gray-600 italic py-2">
+            No stations configured. Add a station to enable the simulation.
+          </p>
+        )}
+
+        {stationConfigs.map((config, idx) => (
+          <div
+            key={idx}
+            className="flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-800/30 px-3 py-2"
+          >
+            <Combobox
+              options={stationOptions}
+              value={config.stationId}
+              onChange={(v) => updateStation(idx, 'stationId', v)}
+              placeholder="Select station…"
+              disabled={isRunning}
+              className="flex-1 min-w-0"
+            />
+            <Combobox
+              options={employeeOptions}
+              value={config.employeeId}
+              onChange={(v) => updateStation(idx, 'employeeId', v)}
+              placeholder="Employee (optional)…"
+              disabled={isRunning}
+              className="flex-1 min-w-0"
+            />
+            <label className="flex items-center gap-1.5 shrink-0 text-xs text-gray-400 whitespace-nowrap">
+              Machines
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={config.machineCount}
+                onChange={(e) =>
+                  updateStation(idx, 'machineCount', Math.max(1, Number(e.target.value)))
+                }
+                disabled={isRunning}
+                className="w-14 rounded bg-gray-800 border border-gray-600 px-2 py-1 text-gray-100 text-xs focus:border-cyan-500 focus:outline-none disabled:opacity-50"
+              />
+            </label>
+            <button
+              onClick={() => removeStation(idx)}
+              disabled={isRunning}
+              className="text-gray-600 hover:text-red-400 disabled:opacity-30 transition-colors text-sm leading-none px-1"
+              title="Remove station"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
       </div>
 
       {/* Progress bar — visible during and after run */}
@@ -260,7 +434,7 @@ export function SimulationPanel({ projectId, initialRequest }: SimulationPanelPr
             ))}
           </div>
 
-          {/* Alerts */}
+          {/* Simulation-level alerts */}
           {result.alerts.length > 0 && (
             <div className="rounded-lg border border-amber-700/50 bg-amber-950/30 p-3 space-y-1">
               <p className="text-xs font-semibold text-amber-400">Alerts</p>
