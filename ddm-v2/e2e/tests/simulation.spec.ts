@@ -90,15 +90,17 @@ test.describe('Real-Time Simulation (WebSocket)', () => {
     await page.getByRole('button', { name: /run simulation/i }).click()
 
     // Wait for the simulation to finish (progress bar hits 100 %)
+    // Use .first() to avoid strict-mode violation when both
+    // 'Simulation complete' (status text) and 'Complete' (progress label) match.
     await expect(
-      page.getByText(/simulation complete/i).or(page.getByText(/complete/i)),
+      page.getByText('Simulation complete'),
     ).toBeVisible({ timeout: 60_000 })
 
     // The KPI strip appears in the result section
-    await expect(page.getByText(/cycle time/i)).toBeVisible({ timeout: 5_000 })
-    await expect(page.getByText(/UPH/i)).toBeVisible()
-    await expect(page.getByText(/balance rate/i)).toBeVisible()
-    await expect(page.getByText(/bottleneck/i)).toBeVisible()
+    await expect(page.getByText('Cycle Time', { exact: true })).toBeVisible({ timeout: 5_000 })
+    await expect(page.getByText('UPH', { exact: true })).toBeVisible()
+    await expect(page.getByText('Balance Rate', { exact: true })).toBeVisible()
+    await expect(page.getByText('Bottleneck', { exact: true })).toBeVisible()
   })
 
   test('Re-run button appears after simulation completes', async ({ page }) => {

@@ -39,7 +39,8 @@ test.describe('SOP Action Editor — Optimistic UI', () => {
     await expect(page.getByRole('columnheader', { name: /#/i })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: /type/i })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: /description/i })).toBeVisible()
-    await expect(page.getByRole('columnheader', { name: /ct/i })).toBeVisible()
+    // Actual column header is "Seconds" (not "CT")
+    await expect(page.getByRole('columnheader', { name: /seconds/i })).toBeVisible()
 
     // At least 7 rows (seed data has 7 actions for proj-atlas)
     const rows = page.locator('tbody tr')
@@ -55,35 +56,14 @@ test.describe('SOP Action Editor — Optimistic UI', () => {
 
   test('drag-and-drop reorder marks the editor as dirty', async ({ page }) => {
     const rows = page.locator('tbody tr')
-    const source = rows.nth(0)
-    const target = rows.nth(2)
 
-    // Grab the source row's bounding box
-    const sourceBounds = await source.boundingBox()
-    const targetBounds = await target.boundingBox()
+    // Use Playwright's dragTo() which dispatches native HTML5 drag events
+    // (dragstart / dragover / drop) required by React's draggable handler
+    await rows.first().dragTo(rows.nth(2))
 
-    if (!sourceBounds || !targetBounds) {
-      test.skip(true, 'Could not compute drag bounding boxes')
-      return
-    }
-
-    // Perform HTML5 drag — move from source mid to target mid
-    await page.mouse.move(
-      sourceBounds.x + sourceBounds.width / 2,
-      sourceBounds.y + sourceBounds.height / 2,
-    )
-    await page.mouse.down()
-    await page.mouse.move(
-      targetBounds.x + targetBounds.width / 2,
-      targetBounds.y + targetBounds.height / 2,
-      { steps: 10 },
-    )
-    await page.mouse.up()
-
-    // After a successful drag, isDirty=true shows the Save button
-    await expect(
-      page.getByRole('button', { name: /save/i }),
-    ).toBeVisible({ timeout: 5_000 })
+    // After a successful drag, isDirty=true enables the Save button
+    const saveBtn = page.getByRole('button', { name: /save/i })
+    await expect(saveBtn).toBeEnabled({ timeout: 5_000 })
   })
 
   test('optimistic save: PUT is dispatched and success toast fires', async ({ page }) => {
@@ -96,24 +76,14 @@ test.describe('SOP Action Editor — Optimistic UI', () => {
       { timeout: 15_000 },
     )
 
-    // Trigger a drag (row 0 → row 1) to dirty the state
     const rows = page.locator('tbody tr')
-    const r0 = await rows.nth(0).boundingBox()
-    const r1 = await rows.nth(1).boundingBox()
 
-    if (!r0 || !r1) {
-      test.skip(true, 'Bounding boxes unavailable')
-      return
-    }
+    // Use dragTo() for HTML5 drag-and-drop (dispatches dragstart/dragover/drop)
+    await rows.first().dragTo(rows.nth(1))
 
-    await page.mouse.move(r0.x + r0.width / 2, r0.y + r0.height / 2)
-    await page.mouse.down()
-    await page.mouse.move(r1.x + r1.width / 2, r1.y + r1.height / 2, { steps: 8 })
-    await page.mouse.up()
-
-    // Click Save
+    // Wait for Save button to be ENABLED (isDirty=true)
     const saveBtn = page.getByRole('button', { name: /save/i })
-    await expect(saveBtn).toBeVisible()
+    await expect(saveBtn).toBeEnabled({ timeout: 5_000 })
     await saveBtn.click()
 
     // PUT is fired
@@ -126,24 +96,18 @@ test.describe('SOP Action Editor — Optimistic UI', () => {
   })
 
   test('discard resets the order and hides the save button', async ({ page }) => {
-    // Dirty the state
     const rows = page.locator('tbody tr')
-    const r0 = await rows.nth(0).boundingBox()
-    const r1 = await rows.nth(1).boundingBox()
-    if (!r0 || !r1) return
 
-    await page.mouse.move(r0.x + r0.width / 2, r0.y + r0.height / 2)
-    await page.mouse.down()
-    await page.mouse.move(r1.x + r1.width / 2, r1.y + r1.height / 2, { steps: 8 })
-    await page.mouse.up()
+    // Use dragTo for HTML5 drag (same as other tests)
+    await rows.first().dragTo(rows.nth(1))
 
     const saveBtn = page.getByRole('button', { name: /save/i })
-    await expect(saveBtn).toBeVisible()
+    await expect(saveBtn).toBeEnabled({ timeout: 5_000 })
 
-    // Discard
+    // Discard button only appears when isDirty=true
     await page.getByRole('button', { name: /discard/i }).click()
 
-    // Save button disappears when isDirty resets
-    await expect(saveBtn).not.toBeVisible({ timeout: 5_000 })
+    // After discard, button reverts to disabled state
+    await expect(saveBtn).toBeDisabled({ timeout: 5_000 })
   })
 })

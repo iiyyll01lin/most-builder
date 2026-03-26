@@ -4,16 +4,14 @@
  *
  * Runs once before any test file and is paired with globalTeardown.
  */
-import { execSync, spawnSync } from 'child_process'
+import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
 
 // Root of ddm-v2/  (global-setup.ts lives in ddm-v2/e2e/)
 const COMPOSE_DIR = path.resolve(__dirname, '..')
 const COMPOSE_FILE = path.join(COMPOSE_DIR, 'docker-compose.test.yml')
-const SOURCE_DB = path.join(COMPOSE_DIR, 'data', 'runtime-db.json')
-const SEED_CONTAINER = 'ddm-v2-backend-test'
-const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
+const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:4000'
 const BACKEND_HEALTH = 'http://localhost:8000/api/v1/health'
 
 function run(cmd: string, opts: { cwd?: string } = {}) {
@@ -46,24 +44,10 @@ export default async function globalSetup() {
     throw new Error(`[setup] Compose file not found: ${COMPOSE_FILE}`)
   }
 
-  // Pull / build images, then start in detached mode
+  // Pull / build images, then start in detached mode.
+  // The db-init container seeds runtime-db.json into the e2e_data volume
+  // before the backend starts; no manual docker cp needed.
   run(`docker compose -f ${COMPOSE_FILE} up --build -d`)
-
-  // Copy the seed DB into the named volume via the (already running) backend container.
-  // We wait for the container to exist before copying.
-  console.log('[setup] Seeding test database…')
-  await new Promise((r) => setTimeout(r, 3_000))
-
-  if (fs.existsSync(SOURCE_DB)) {
-    const result = spawnSync('docker', [
-      'cp',
-      SOURCE_DB,
-      `${SEED_CONTAINER}:/app/data/runtime-db.json`,
-    ])
-    if (result.status !== 0) {
-      console.warn('[setup] DB seed copy failed — tests will use the container-bundled data')
-    }
-  }
 
   // Wait for backend health endpoint
   console.log('[setup] Waiting for backend to be healthy…')

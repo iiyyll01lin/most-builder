@@ -19,8 +19,9 @@ export async function login(page: Page, user = TEST_USER) {
   // Ensure we land on the login page
   await expect(page.getByRole('heading', { name: /DDM IE\/PE Console/i })).toBeVisible()
 
-  await page.getByLabel(/username/i).fill(user.username)
-  await page.getByLabel(/password/i).fill(user.password)
+  // Use id-based locators — matches the htmlFor/id associations in LoginPage.tsx
+  await page.locator('#username').fill(user.username)
+  await page.locator('#password').fill(user.password)
   await page.getByRole('button', { name: /sign in/i }).click()
 
   // After successful login the project selector is shown

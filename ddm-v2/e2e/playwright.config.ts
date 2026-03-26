@@ -10,7 +10,7 @@ import { defineConfig, devices } from '@playwright/test'
  * Set E2E_BASE_URL to override the default frontend origin.
  */
 
-const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
+const BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:4000'
 
 export default defineConfig({
   testDir: './tests',

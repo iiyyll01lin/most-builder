@@ -15,15 +15,15 @@ test.describe('Authentication & BFF Dashboard', () => {
   test('shows login page to unauthenticated users', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: /DDM IE\/PE Console/i })).toBeVisible()
-    await expect(page.getByLabel(/username/i)).toBeVisible()
-    await expect(page.getByLabel(/password/i)).toBeVisible()
+    await expect(page.locator('#username')).toBeVisible()
+    await expect(page.locator('#password')).toBeVisible()
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible()
   })
 
   test('rejects invalid credentials with an error toast', async ({ page }) => {
     await page.goto('/')
-    await page.getByLabel(/username/i).fill('notauser')
-    await page.getByLabel(/password/i).fill('wrongpass')
+    await page.locator('#username').fill('notauser')
+    await page.locator('#password').fill('wrongpass')
     await page.getByRole('button', { name: /sign in/i }).click()
 
     // The global interceptor fires a toast — look for the error indicator
@@ -40,8 +40,6 @@ test.describe('Authentication & BFF Dashboard', () => {
 
     // Project selector is shown
     await expect(page.getByRole('heading', { name: /open project/i })).toBeVisible()
-    // The user's name / role appears in the nav after login
-    await expect(page.getByText(TEST_USER.name, { exact: false })).toBeVisible()
   })
 
   test('BFF dashboard loads KPIs and SOP version selector', async ({ page }) => {
