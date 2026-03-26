@@ -1,0 +1,246 @@
+# ─── docker-compose.tools.yml — Developer CLI Tooling & Task Runner ──────────
+#
+# All services are gated behind Compose profiles so they NEVER start
+# automatically when a developer runs `docker compose up -d`.
+#
+#   Profile "tools" — one-shot commands (docker compose run --rm <service>):
+#     pytest          Run Python unit / functional / regression tests
+#     lint            Run ruff (style) + mypy (types) static analysis
+#     frontend-build  Compile the React/Vite app into src/ddm_v2/static/frontend-build/
+#     db-backup       Write a timestamped snapshot of the production data volume
+#     playwright      Run the Playwright E2E browser suite
+#
+#   Profile "dev" — persistent dev server (docker compose --profile dev up):
+#     frontend-dev    Vite hot-reload server on http://localhost:5173
+#
+# ─── Quick-reference ───────────────────────────────────────────────────────────
+#
+#   # First-time: build the developer image
+#   docker compose -f docker-compose.tools.yml build pytest
+#
+#   # Run all Python tests
+#   docker compose -f docker-compose.tools.yml run --rm pytest
+#
+#   # Run a single layer with extra flags
+#   docker compose -f docker-compose.tools.yml run --rm pytest tests/unit -v -k test_auth
+#
+#   # Lint
+#   docker compose -f docker-compose.tools.yml run --rm lint
+#
+#   # Build the React frontend
+#   docker compose -f docker-compose.tools.yml run --rm frontend-build
+#
+#   # Back up the production database
+#   docker compose -f docker-compose.tools.yml run --rm db-backup
+#
+#   # Run Playwright E2E (start test stack first — see playwright service comments)
+#   docker compose -f docker-compose.test.yml up -d --build
+#   docker compose -f docker-compose.tools.yml run --rm playwright
+#
+#   # Start frontend Vite dev server (start production backend first)
+#   docker compose up -d
+#   docker compose -f docker-compose.tools.yml --profile dev up frontend-dev
+#
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: ddm-v2-tools
+
+services:
+
+  # ── Python test runner ───────────────────────────────────────────────────────
+  # Spins up the dev image, injects the host tests/ tree via bind-mount, and
+  # runs pytest against unit, functional, and regression layers.
+  # The working-dir is /app so pytest.ini_options in pyproject.toml are found.
+  #
+  # Override the default command to narrow the scope or pass flags:
+  #   docker compose -f docker-compose.tools.yml run --rm pytest tests/unit -v
+  #   docker compose -f docker-compose.tools.yml run --rm pytest -k test_auth
+  pytest:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
+    image: ddm-v2-dev:latest
+    working_dir: /app
+    volumes:
+      # Bind-mount tests/ so host edits are visible without a rebuild.
+      - ./tests:/app/tests
+      # Overlay src/ as read-only — the installed package already owns /app/src
+      # inside the image, but this lets live edits take effect immediately.
+      - ./src:/app/src:ro
+    environment:
+      PYTHONPATH: src
+    command: pytest tests/unit tests/functional tests/regression -v
+    profiles: ["tools"]
+    restart: "no"
+
+  # ── Ruff + Mypy static analysis ──────────────────────────────────────────────
+  # Runs ruff (style / import order) followed by mypy (type checking).
+  # Exits non-zero on any finding — safe to wire into a pre-commit or CI gate.
+  #
+  #   docker compose -f docker-compose.tools.yml run --rm lint
+  lint:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
+    image: ddm-v2-dev:latest
+    working_dir: /app
+    volumes:
+      - ./src:/app/src:ro
+    command: >
+      sh -c "ruff check src/ && mypy src/ && echo '[lint] All checks passed.'"
+    profiles: ["tools"]
+    restart: "no"
+
+  # ── React / Vite production build ────────────────────────────────────────────
+  # Compiles the frontend source and writes the Vite dist/ artifacts into
+  # src/ddm_v2/static/frontend-build/ so the FastAPI backend can serve them.
+  #
+  # node_modules live in a named Docker volume (frontend_nm) to keep the host
+  # filesystem clean and avoid cross-platform binary incompatibilities.
+  #
+  #   docker compose -f docker-compose.tools.yml run --rm frontend-build
+  frontend-build:
+    image: node:20-alpine
+    working_dir: /workspace
+    volumes:
+      - ./frontend:/workspace
+      # Isolate node_modules inside a Docker volume so host FS stays clean.
+      - frontend_nm:/workspace/node_modules
+      # Output volume: Vite dist/ contents land here after the build.
+      - ./src/ddm_v2/static/frontend-build:/output
+    command: >
+      sh -c "npm ci &&
+             npm run build &&
+             rm -rf /output/* &&
+             cp -r dist/. /output/ &&
+             echo '[frontend-build] Artifacts written to src/ddm_v2/static/frontend-build/'"
+    profiles: ["tools"]
+    restart: "no"
+
+  # ── Vite hot-reload dev server ───────────────────────────────────────────────
+  # Starts the React dev server with live reloading on http://localhost:5173.
+  # Vite's built-in proxy forwards /api/* to the production backend at :8000,
+  # so start the production backend first:
+  #
+  #   docker compose up -d
+  #   docker compose -f docker-compose.tools.yml --profile dev up frontend-dev
+  #
+  # Uses network_mode: host so that Vite's hardcoded proxy target
+  # (http://localhost:8000) resolves directly to the host backend.
+  # Caveat: network_mode: host is Linux-only; on macOS/Windows Docker Desktop
+  # use `host.docker.internal:8000` and update vite.config.ts accordingly.
+  frontend-dev:
+    image: node:20-alpine
+    working_dir: /workspace
+    volumes:
+      - ./frontend:/workspace
+      - frontend_nm:/workspace/node_modules
+    # Share host network so Vite proxy reaches localhost:8000 (the backend).
+    network_mode: host
+    command: >
+      sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    profiles: ["dev"]
+    restart: unless-stopped
+
+  # ── Database backup ──────────────────────────────────────────────────────────
+  # Attaches to the production data volume (read-only) and writes a timestamped
+  # JSON snapshot into ./backups/ on the host.
+  #
+  # The production stack does NOT need to be stopped first — the JsonStore uses
+  # atomic file replacement, making the snapshot safe to take live.
+  #
+  # Prerequisites: the production stack must have been started at least once so
+  # that the Docker volume "ddm-v2_ddm-v2-data" already exists.
+  #
+  #   docker compose -f docker-compose.tools.yml run --rm db-backup
+  #   ls backups/
+  db-backup:
+    image: alpine:3
+    volumes:
+      - prod_data:/data/runtime:ro
+      - ./backups:/backups
+    command:
+      - sh
+      - -c
+      - >-
+        mkdir -p /backups &&
+        ts=$$(date +%Y%m%dT%H%M%S) &&
+        cp /data/runtime/runtime-db.json /backups/runtime-db-$$ts.json &&
+        echo "[db-backup] Saved: /backups/runtime-db-$$ts.json"
+    profiles: ["tools"]
+    restart: "no"
+
+  # ── Playwright E2E browser test runner ───────────────────────────────────────
+  # Runs the full Playwright test suite against the already-running E2E stack.
+  # E2E_SKIP_DOCKER=true tells global-setup.ts to skip spinning up Docker itself
+  # (the stack is already running). The container joins ddm-v2-e2e_app_net so
+  # it can reach the `frontend` and `backend` services by service-name hostname.
+  #
+  # Step 1 — start the E2E stack (one terminal):
+  #   docker compose -f docker-compose.test.yml up -d --build
+  #
+  # Step 2 — run the tests (another terminal):
+  #   docker compose -f docker-compose.tools.yml run --rm playwright
+  #
+  # HTML report lands in e2e/playwright-report/ on the host.
+  # View it with: npx playwright show-report e2e/playwright-report
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.52.0-jammy
+    working_dir: /app/e2e
+    volumes:
+      - ./e2e:/app/e2e
+      # Isolate node_modules to avoid host/container binary mismatch.
+      - playwright_nm:/app/e2e/node_modules
+      # Persist the HTML report to the host so developers can open it.
+      - ./e2e/playwright-report:/app/e2e/playwright-report
+    environment:
+      # Tell global-setup.ts to skip docker compose (stack is already running).
+      E2E_SKIP_DOCKER: "true"
+      # Frontend is reachable by service name inside the shared network.
+      E2E_BASE_URL: "http://frontend"
+    command: >
+      sh -c "npm ci && npx playwright test"
+    profiles: ["tools"]
+    restart: "no"
+    networks:
+      - e2e_app_net
+
+# ─── Named volumes ─────────────────────────────────────────────────────────────
+
+volumes:
+  # node_modules caches — keep container-native binaries off the host filesystem.
+  frontend_nm: {}
+  playwright_nm: {}
+
+  # Production data volume — declared external so db-backup can read it.
+  # The volume name "ddm-v2_ddm-v2-data" is derived from the production
+  # project name ("ddm-v2", set by `name:` in docker-compose.yml) plus the
+  # volume key "ddm-v2-data".
+  prod_data:
+    name: ddm-v2_ddm-v2-data
+    external: true
+
+# ─── Networks ──────────────────────────────────────────────────────────────────
+
+networks:
+  # Shared bridge network created by docker-compose.test.yml (project: ddm-v2-e2e).
+  # The playwright service joins this network to reach `backend` and `frontend`
+  # by their Compose service-name hostnames.
+  # The test stack must be running before the playwright service is started.
+  e2e_app_net:
+    name: ddm-v2-e2e_app_net
+    external: true

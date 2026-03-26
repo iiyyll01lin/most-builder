@@ -1,0 +1,48 @@
+# ─── DDM-V2 Developer image ────────────────────────────────────────────────────
+# Extends the backend recipe with [dev] extras: pytest, httpx, ruff, mypy.
+# Used exclusively by docker-compose.tools.yml — never pushed to a registry.
+#
+# The tests/ tree is intentionally NOT baked in; it is bind-mounted at runtime
+# so that host edits are immediately visible without a rebuild.
+
+FROM python:3.11-slim
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DDM_ROOT_DIR=/app \
+    DDM_DATA_DIR=/app/data \
+    DDM_DB_PATH=/app/data/runtime-db.json \
+    HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    http_proxy=${http_proxy} \
+    https_proxy=${https_proxy} \
+    no_proxy=${no_proxy}
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+COPY src ./src
+
+# Prefer offline wheels when present; fall back to PyPI.
+COPY docker-wheels/ ./docker-wheels/
+
+RUN pip install --upgrade pip \
+    && if ls ./docker-wheels/*.whl > /dev/null 2>&1; then \
+         pip install --find-links ./docker-wheels -e .[dev] ; \
+       else \
+         pip install -e .[dev] ; \
+       fi \
+    && mkdir -p /app/data
+
+# tests/ is bind-mounted by docker-compose.tools.yml at runtime.
+# No default CMD — each tool service supplies its own command.

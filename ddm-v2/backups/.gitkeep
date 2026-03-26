@@ -1,0 +1,5 @@
+# Timestamped backup snapshots are written here by:
+#   docker compose -f docker-compose.tools.yml run --rm db-backup
+#
+# These files contain runtime database state and must NOT be committed.
+# Only this .gitkeep placeholder is tracked.

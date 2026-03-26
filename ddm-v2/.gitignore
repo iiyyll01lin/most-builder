@@ -10,3 +10,4 @@ data/runtime-db.json.lock
 data/runtime-db.sqlite3
 data/runtime-db.legacy-json.json
 data/*.corrupt-*.json
+backups/runtime-db-*.json
