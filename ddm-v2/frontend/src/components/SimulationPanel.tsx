@@ -6,6 +6,7 @@ import { fetchStations, fetchEmployees } from '@/api/master'
 import { useAuthStore } from '@/store/authStore'
 import { ProgressBar } from './ui/ProgressBar'
 import { Combobox } from './ui/Combobox'
+import { DigitalTwinView } from './DigitalTwinView'
 import type {
   LineBalanceRequest,
   LineBalanceResponse,
@@ -241,6 +242,7 @@ export function SimulationPanel({ projectId, initialRequest, activeSopVersionId 
     (LineBalanceResponse & { id: string; timestamp: string; project_id: string; created_by: string }) | null
   >(null)
   const [taktTime, setTaktTime] = useState(initialRequest?.takt_time ?? 60)
+  const [viewMode, setViewMode] = useState<'cards' | '3d'>('cards')
 
   // Station configuration rows
   const [stationConfigs, setStationConfigs] = useState<StationConfig[]>(
@@ -542,17 +544,48 @@ export function SimulationPanel({ projectId, initialRequest, activeSopVersionId 
             </div>
           )}
 
-          {/* Station cards */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {result.station_results.map((s) => (
-              <StationCard
-                key={s.id}
-                station={s}
-                taktTime={taktTime}
-                isBottleneck={s.id === result.bottleneck_station}
-              />
-            ))}
+          {/* View-mode toggle: Cards ↔ 3D Digital Twin */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">View</span>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={[
+                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500',
+                viewMode === 'cards'
+                  ? 'bg-cyan-600 text-white'
+                  : 'border border-gray-600 text-gray-400 hover:bg-gray-700',
+              ].join(' ')}
+            >
+              Cards
+            </button>
+            <button
+              onClick={() => setViewMode('3d')}
+              className={[
+                'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500',
+                viewMode === '3d'
+                  ? 'bg-indigo-600 text-white'
+                  : 'border border-gray-600 text-gray-400 hover:bg-gray-700',
+              ].join(' ')}
+            >
+              ⬡ 3D Twin
+            </button>
           </div>
+
+          {/* Station cards or 3D Digital Twin view */}
+          {viewMode === '3d' ? (
+            <DigitalTwinView result={result} taktTime={taktTime} />
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {result.station_results.map((s) => (
+                <StationCard
+                  key={s.id}
+                  station={s}
+                  taktTime={taktTime}
+                  isBottleneck={s.id === result.bottleneck_station}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>
