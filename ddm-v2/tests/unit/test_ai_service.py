@@ -7,6 +7,11 @@ from ddm_v2.services.ai_service import (
     build_system_prompt,
     generate_sop_actions,
 )
+from ddm_v2.services.ai_review_service import (
+    _mock_llm_review,
+    build_review_system_prompt,
+    review_sop_sequence,
+)
 from ddm_v2.services.most_workspace_service import _apply_precaution_rules
 
 # ─── Fixtures ──────────────────────────────────────────────────────────────────
@@ -182,3 +187,213 @@ def test_fasten_only_instruction_generates_controlled_step():
         f"Expected frequency=2 for '2 screws', got {fasten[0]['frequency']}"
     )
     assert fasten[0]["tool"] == "Torque Driver", "Fasten step must use Torque Driver"
+
+
+# ─── Unit: AI Review Service ───────────────────────────────────────────────────
+
+# Realistic server-assembly sequence with a deliberate dependency inversion:
+# Step 2 fastens screws before Step 1's counterpart places the motherboard.
+_CONFLICTING_SEQUENCE: list[dict] = [
+    {
+        "id": "act-001",
+        "seq_type": "CONTROLLED",
+        "description": "Fasten Screw ×4",
+        "tmu": 72,
+        "seconds": 2.59,
+        "component": "Screw",
+        "tool": "Torque Driver",
+        "station_id": "sta-01",
+        "is_ctq": True,
+        "frequency": 4,
+        "precautions": [],
+    },
+    {
+        "id": "act-002",
+        "seq_type": "GENERAL",
+        "description": "Place Motherboard",
+        "tmu": 50,
+        "seconds": 1.80,
+        "component": "Motherboard",
+        "tool": None,
+        "station_id": "sta-01",
+        "is_ctq": True,
+        "frequency": 1,
+        "precautions": [],
+    },
+    {
+        "id": "act-003",
+        "seq_type": "GENERAL",
+        "description": "Test Power",
+        "tmu": 24,
+        "seconds": 0.86,
+        "component": None,
+        "tool": None,
+        "station_id": "sta-02",
+        "is_ctq": False,
+        "frequency": 1,
+        "precautions": [],
+    },
+    {
+        "id": "act-004",
+        "seq_type": "GENERAL",
+        "description": "Install Cover",
+        "tmu": 50,
+        "seconds": 1.80,
+        "component": "Cover",
+        "tool": None,
+        "station_id": "sta-02",
+        "is_ctq": False,
+        "frequency": 1,
+        "precautions": [],
+    },
+    {
+        "id": "act-005",
+        "seq_type": "GENERAL",
+        "description": "Place SSD",
+        "tmu": 50,
+        "seconds": 1.80,
+        "component": "SSD",
+        "tool": None,
+        "station_id": "sta-03",
+        "is_ctq": True,
+        "frequency": 1,
+        "precautions": [],
+    },
+]
+
+# Clean sequence with no conflicts
+_CLEAN_SEQUENCE: list[dict] = [
+    {
+        "id": "act-c01",
+        "seq_type": "GENERAL",
+        "description": "Place Motherboard",
+        "tmu": 50,
+        "seconds": 1.80,
+        "component": "Motherboard",
+        "tool": None,
+        "station_id": "sta-01",
+        "is_ctq": True,
+        "frequency": 1,
+        "precautions": [],
+    },
+    {
+        "id": "act-c02",
+        "seq_type": "CONTROLLED",
+        "description": "Fasten Screw ×4",
+        "tmu": 72,
+        "seconds": 2.59,
+        "component": "Screw",
+        "tool": "Torque Driver",
+        "station_id": "sta-01",
+        "is_ctq": True,
+        "frequency": 4,
+        "precautions": [],
+    },
+]
+
+
+@pytest.mark.unit
+def test_ai_review_detects_sequence_conflict():
+    """Mock reviewer must detect 'Fasten before Place' as a High-severity conflict
+    and 'Test Power before PSU installed' as a High-severity conflict."""
+    conflicts = _mock_llm_review(_CONFLICTING_SEQUENCE)
+
+    assert isinstance(conflicts, list), "_mock_llm_review must return a list"
+    assert len(conflicts) >= 1, "Must detect at least one conflict in the faulty sequence"
+
+    # Every item must contain the required Conflict fields
+    for item in conflicts:
+        assert "severity" in item, "Conflict must have 'severity'"
+        assert "description" in item, "Conflict must have 'description'"
+        assert "related_action_ids" in item, "Conflict must have 'related_action_ids'"
+        assert "suggestion" in item, "Conflict must have 'suggestion'"
+        assert item["severity"] in ("High", "Medium", "Low"), (
+            f"Severity must be High/Medium/Low, got {item['severity']!r}"
+        )
+        assert isinstance(item["description"], str) and item["description"], (
+            "description must be a non-empty string"
+        )
+        assert isinstance(item["related_action_ids"], list), (
+            "related_action_ids must be a list"
+        )
+        assert isinstance(item["suggestion"], str) and item["suggestion"], (
+            "suggestion must be a non-empty string"
+        )
+
+    # The 'Fasten before Place' dependency inversion must be flagged as High
+    high_conflicts = [c for c in conflicts if c["severity"] == "High"]
+    assert high_conflicts, (
+        "The 'Fasten Screw before Place Motherboard' inversion must produce a High-severity conflict"
+    )
+
+    # At least one High conflict should reference act-001 (the fasten step)
+    flagged_ids = {
+        aid
+        for c in high_conflicts
+        for aid in c.get("related_action_ids", [])
+    }
+    assert "act-001" in flagged_ids, (
+        "act-001 (Fasten Screw - the offending step) must appear in related_action_ids "
+        f"of a High conflict. Got flagged IDs: {flagged_ids}"
+    )
+
+
+@pytest.mark.unit
+def test_ai_review_clean_sequence_returns_no_hard_conflicts():
+    """A correctly ordered sequence (Place then Fasten) must produce zero High conflicts."""
+    conflicts = _mock_llm_review(_CLEAN_SEQUENCE)
+
+    high_conflicts = [c for c in conflicts if c["severity"] == "High"]
+    assert not high_conflicts, (
+        f"A clean sequence should produce no High-severity conflicts, got: {high_conflicts}"
+    )
+
+
+@pytest.mark.unit
+def test_ai_review_powertest_before_psu_is_high_conflict():
+    """'Test Power' before any PSU install must be flagged as High severity."""
+    conflicts = _mock_llm_review(_CONFLICTING_SEQUENCE)
+    power_conflicts = [
+        c for c in conflicts
+        if "power" in c.get("description", "").lower() and c["severity"] == "High"
+    ]
+    assert power_conflicts, (
+        "Test Power without prior PSU/battery install must be flagged as High severity"
+    )
+
+
+@pytest.mark.unit
+def test_review_sop_sequence_returns_valid_response():
+    """review_sop_sequence must return a SopReviewResponse adhering to the schema contract."""
+    response = review_sop_sequence(_CONFLICTING_SEQUENCE)
+
+    assert response.reviewed_action_count == len(_CONFLICTING_SEQUENCE), (
+        "reviewed_action_count must equal the number of input actions"
+    )
+    assert isinstance(response.summary, str) and response.summary, (
+        "summary must be a non-empty string"
+    )
+    assert isinstance(response.conflicts, list), "conflicts must be a list"
+    for conflict in response.conflicts:
+        assert conflict.severity in ("High", "Medium", "Low")
+        assert conflict.description
+        assert isinstance(conflict.related_action_ids, list)
+        assert conflict.suggestion
+
+
+@pytest.mark.unit
+def test_build_review_system_prompt_embeds_sequence():
+    """build_review_system_prompt must embed action IDs, descriptions, and PWSM rules."""
+    system_prompt, user_message = build_review_system_prompt(_CONFLICTING_SEQUENCE)
+
+    assert "act-001" in system_prompt, "Action IDs must appear in the system prompt"
+    assert "Fasten Screw" in system_prompt, "Action descriptions must appear in the prompt"
+    assert "Motherboard" in system_prompt, "Component names must appear in the prompt"
+    assert "PREREQUISITE" in system_prompt or "Physical World State" in system_prompt, (
+        "PWSM framework headings must appear in the prompt"
+    )
+    assert "High" in system_prompt, "Severity guide must appear in the prompt"
+    assert isinstance(user_message, str) and user_message, (
+        "user_message must be a non-empty string"
+    )
+

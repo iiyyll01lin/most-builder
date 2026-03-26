@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ddm_v2.ai_schemas import GenerateSopRequest, GenerateSopResponse
+from ddm_v2.ai_schemas import (
+    GenerateSopRequest,
+    GenerateSopResponse,
+    SopReviewRequest,
+    SopReviewResponse,
+)
 from ddm_v2.api.dependencies import get_current_user, get_store
 from ddm_v2.repositories.store import JsonStore
+from ddm_v2.services.ai_review_service import review_sop_sequence
 from ddm_v2.services.ai_service import generate_sop_actions
 from ddm_v2.services.most_workspace_service import _apply_precaution_rules
 
@@ -59,3 +65,41 @@ def generate_sop(
         actions=validated,
         message=f"Generated {len(validated)} action(s) from instruction.",
     )
+
+
+@router.post("/review-sop", response_model=SopReviewResponse, status_code=200)
+def review_sop(
+    payload: SopReviewRequest,
+    store: JsonStore = Depends(get_store),
+    _user: dict = Depends(get_current_user),
+) -> SopReviewResponse:
+    """Audit a complete SOP version for manufacturing logic conflicts.
+
+    The pipeline:
+    1. Fetch the SOP version from the store; 404 if not found.
+    2. Collect all actions in their natural list order (the order they appear in
+       the SOP version's ``actions`` array).  This is the intended execution
+       sequence as authored by the IE.
+    3. Pass the ordered sequence to ``review_sop_sequence`` — which calls the
+       OpenAI API when OPENAI_API_KEY is configured, or the deterministic mock
+       generator otherwise.
+    4. Return the validated ``SopReviewResponse`` containing a list of
+       ``Conflict`` objects with severity, description, related action IDs, and
+       a concrete fix suggestion.
+    """
+    sop_version = store.find_by_id("sop_versions", payload.sop_version_id)
+    if sop_version is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"SOP version '{payload.sop_version_id}' not found.",
+        )
+
+    ordered_actions: list[dict] = list(sop_version.get("actions", []))
+
+    try:
+        return review_sop_sequence(ordered_actions)
+    except (ValueError, KeyError, TypeError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"AI review service error: {exc}",
+        ) from exc

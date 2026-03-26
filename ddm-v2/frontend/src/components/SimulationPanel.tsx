@@ -7,6 +7,9 @@ import { useAuthStore } from '@/store/authStore'
 import { ProgressBar } from './ui/ProgressBar'
 import { Combobox } from './ui/Combobox'
 import { DigitalTwinView } from './DigitalTwinView'
+import { AiReviewReport } from './AiReviewReport'
+import { reviewSopActions } from '@/api/ai'
+import type { SopConflict } from '@/api/ai'
 import type {
   LineBalanceRequest,
   LineBalanceResponse,
@@ -28,10 +31,12 @@ function StationCard({
   station,
   taktTime,
   isBottleneck,
+  highlightedActionIds = new Set(),
 }: {
   station: StationResult
   taktTime: number
   isBottleneck?: boolean
+  highlightedActionIds?: Set<string>
 }) {
   const pct = Math.min(100, (station.actual_time / taktTime) * 100)
   const hasSkillAlerts = (station.skill_alerts?.length ?? 0) > 0
@@ -177,12 +182,20 @@ function StationCard({
           </button>
           {showActions && (
             <ol className="mt-1.5 space-y-0.5">
-              {(station.actions as Array<{ id: string; description: string; seconds: number; is_simo?: boolean; simo_group_id?: string | null; precautions?: string[] }>).map((a, idx) => (
-                <li key={a.id ?? idx} className="space-y-0.5">
+              {(station.actions as Array<{ id: string; description: string; seconds: number; is_simo?: boolean; simo_group_id?: string | null; precautions?: string[] }>).map((a, idx) => {
+                const isHighlighted = a.id && highlightedActionIds.has(a.id)
+                return (
+                <li key={a.id ?? idx} className={[
+                  'space-y-0.5 rounded transition-colors',
+                  isHighlighted ? 'bg-violet-900/40 ring-1 ring-violet-500/60 px-1' : '',
+                ].join(' ')}>
                   <div className="flex items-start gap-1.5 text-[10px] text-gray-400">
                     <span className="shrink-0 text-gray-600">{idx + 1}.</span>
                     {/* break-words + whitespace-normal prevents Yamazumi text overflow */}
-                    <span className="break-words whitespace-normal min-w-0 flex-1">{a.description}</span>
+                    <span className={[
+                      'break-words whitespace-normal min-w-0 flex-1',
+                      isHighlighted ? 'text-violet-200 font-medium' : '',
+                    ].join(' ')}>{a.description}</span>
                     <span className="shrink-0 text-gray-600">{a.seconds.toFixed(2)}s</span>
                     {a.is_simo && (
                       <span
@@ -190,6 +203,11 @@ function StationCard({
                         title="SIMO — time parallelized; only bottleneck hand counted"
                       >
                         SIMO
+                      </span>
+                    )}
+                    {isHighlighted && (
+                      <span className="shrink-0 rounded bg-violet-800/60 px-1 py-0.5 text-[9px] text-violet-300">
+                        ⚠ Conflict
                       </span>
                     )}
                   </div>
@@ -208,7 +226,8 @@ function StationCard({
                     </div>
                   )}
                 </li>
-              ))}
+                )
+              })}
             </ol>
           )}
         </div>
@@ -243,6 +262,35 @@ export function SimulationPanel({ projectId, initialRequest, activeSopVersionId 
   >(null)
   const [taktTime, setTaktTime] = useState(initialRequest?.takt_time ?? 60)
   const [viewMode, setViewMode] = useState<'cards' | '3d'>('cards')
+
+  // ── AI Review state ────────────────────────────────────────────────────────
+  const [aiDrawerOpen, setAiDrawerOpen] = useState(false)
+  const [aiConflicts, setAiConflicts] = useState<SopConflict[]>([])
+  const [aiSummary, setAiSummary] = useState<string | undefined>()
+  const [highlightedActionIds, setHighlightedActionIds] = useState<Set<string>>(new Set())
+
+  const aiReviewMutation = useMutation({
+    mutationFn: (sopVersionId: string) => reviewSopActions(sopVersionId),
+    onSuccess: (data) => {
+      setAiConflicts(data.conflicts)
+      setAiSummary(data.summary)
+      setAiDrawerOpen(true)
+    },
+    onError: () => {
+      toast.error('AI review failed. Please try again.')
+    },
+  })
+
+  const handleAiReview = useCallback(() => {
+    if (!activeSopVersionId) {
+      toast.error('No active SOP version selected.')
+      return
+    }
+    setAiConflicts([])
+    setAiSummary(undefined)
+    setAiDrawerOpen(true)
+    aiReviewMutation.mutate(activeSopVersionId)
+  }, [activeSopVersionId, aiReviewMutation])
 
   // Station configuration rows
   const [stationConfigs, setStationConfigs] = useState<StationConfig[]>(
@@ -368,7 +416,22 @@ export function SimulationPanel({ projectId, initialRequest, activeSopVersionId 
           <h2 className="text-base font-semibold text-gray-100">Line Balance Simulation</h2>
           <p className="text-xs text-gray-400">Real-time async · WebSocket stream</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* AI Logic Review button */}
+          <button
+            onClick={handleAiReview}
+            disabled={!activeSopVersionId || aiReviewMutation.isPending}
+            title={!activeSopVersionId ? 'Select an active SOP version first' : 'Run AI conflict audit on the SOP sequence'}
+            className={[
+              'rounded-lg px-3 py-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500',
+              !activeSopVersionId || aiReviewMutation.isPending
+                ? 'cursor-not-allowed bg-gray-700 text-gray-500'
+                : 'bg-violet-700 text-white hover:bg-violet-600',
+            ].join(' ')}
+          >
+            {aiReviewMutation.isPending ? '⏳ Reviewing…' : '🤖 AI Logic Review'}
+          </button>
+
           <label className="flex items-center gap-2 text-xs text-gray-400">
             Takt Time (s)
             <input
@@ -582,12 +645,27 @@ export function SimulationPanel({ projectId, initialRequest, activeSopVersionId 
                   station={s}
                   taktTime={taktTime}
                   isBottleneck={s.id === result.bottleneck_station}
+                  highlightedActionIds={highlightedActionIds}
                 />
               ))}
             </div>
           )}
         </div>
       )}
+
+      {/* AI Audit Report drawer */}
+      <AiReviewReport
+        isOpen={aiDrawerOpen}
+        onClose={() => {
+          setAiDrawerOpen(false)
+          setHighlightedActionIds(new Set())
+        }}
+        isLoading={aiReviewMutation.isPending}
+        summary={aiSummary}
+        conflicts={aiConflicts}
+        onHoverConflict={(ids) => setHighlightedActionIds(ids)}
+        onLeaveConflict={() => setHighlightedActionIds(new Set())}
+      />
     </section>
   )
 }
