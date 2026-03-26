@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+try:
+    from datetime import UTC
+except ImportError:
+    import datetime as _dt
+    UTC = _dt.timezone.utc
+from datetime import datetime, timedelta
 
 import jwt
 

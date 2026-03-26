@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import UTC, datetime
+try:
+    from datetime import UTC
+except ImportError:
+    import datetime as _dt
+    UTC = _dt.timezone.utc
+from datetime import datetime
 from typing import Any
 
 from ddm_v2.schemas import MOSTStep

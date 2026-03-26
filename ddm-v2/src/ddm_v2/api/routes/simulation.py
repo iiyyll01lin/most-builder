@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
+try:
+    from datetime import UTC
+except ImportError:
+    import datetime as _dt
+    UTC = _dt.timezone.utc
+from datetime import datetime
 from typing import Any
 
 import jwt

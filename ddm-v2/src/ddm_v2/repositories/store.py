@@ -9,7 +9,12 @@ import threading
 import time
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import UTC, datetime
+try:
+    from datetime import UTC
+except ImportError:
+    import datetime as _dt
+    UTC = _dt.timezone.utc
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
