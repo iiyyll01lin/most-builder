@@ -1,0 +1,43 @@
+# ─── DDM-V2 Frontend — multi-stage build ─────────────────────────────────────
+#
+# Stage 1 (builder): Install Node deps and run Vite production build.
+# Stage 2 (runtime): Copy the static dist/ into a lean Nginx image.
+#
+# The VITE_WS_BASE build arg is intentionally left blank — at runtime the
+# frontend derives the WS URL from window.location.host so Nginx can proxy it
+# transparently without baking a hostname into the bundle.
+
+# ── Stage 1: build ────────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /build
+
+# Copy manifests first for better layer cache utilisation
+COPY package.json package-lock.json ./
+
+RUN npm ci --prefer-offline
+
+# Copy source
+COPY . .
+
+# Production Vite build (outputs to /build/dist)
+RUN npm run build
+
+# ── Stage 2: serve ────────────────────────────────────────────────────────────
+FROM nginx:1.27-alpine AS runtime
+
+# Copy compiled static assets
+COPY --from=builder /build/dist /usr/share/nginx/html
+
+# Replace default Nginx config with our custom reverse-proxy config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Drop the default.conf that Nginx ships (we have conf.d/default.conf)
+RUN rm -f /etc/nginx/conf.d/default.conf.bak 2>/dev/null || true
+
+EXPOSE 80
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget -q --spider http://localhost/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

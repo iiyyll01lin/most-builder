@@ -1,0 +1,83 @@
+# ─── docker-compose.test.yml — Integrated E2E test stack ─────────────────────
+#
+# Spins up the backend and frontend on a shared bridge network.
+# The frontend Nginx proxies /api/* and WebSocket traffic to the backend.
+# Playwright's globalSetup runs `docker compose -f docker-compose.test.yml up`
+# before the test suite and tears it down via globalTeardown.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up --build -d
+#   (Playwright globalSetup does this automatically)
+
+name: ddm-v2-e2e
+
+services:
+  # ── FastAPI backend ──────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
+    image: ddm-v2-backend:test
+    container_name: ddm-v2-backend-test
+    environment:
+      DDM_ROOT_DIR: /app
+      DDM_DATA_DIR: /app/data
+      DDM_DB_PATH: /app/data/runtime-db.json
+      # Fixed secret key so JWT tokens are stable across restarts
+      DDM_SECRET_KEY: e2e-test-secret-key-not-for-production
+      DDM_CORS_ALLOW_ORIGINS: "http://localhost:3000,http://frontend"
+      DDM_CORS_ALLOW_METHODS: "GET,POST,PUT,DELETE"
+      DDM_CORS_ALLOW_HEADERS: "Authorization,Content-Type"
+      DDM_CORS_ALLOW_CREDENTIALS: "true"
+    volumes:
+      # Bind-mount the existing runtime-db.json so tests run against real seed data.
+      # Use a named volume copy to prevent test mutations from corrupting the source.
+      - e2e_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      start_period: 25s
+      retries: 6
+    networks:
+      - app_net
+    restart: "no"
+
+  # ── Nginx + Vite static frontend ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    image: ddm-v2-frontend:test
+    container_name: ddm-v2-frontend-test
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 5s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    networks:
+      - app_net
+    restart: "no"
+
+volumes:
+  # Isolated volume seeded from the source data directory via an init container.
+  # The init step runs once per `docker compose up`.
+  e2e_data:
+
+networks:
+  app_net:
+    driver: bridge
