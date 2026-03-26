@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchDashboard } from '@/api/bff'
+import { getSopVersion } from '@/api/sop'
 import { DashboardSkeleton } from '@/components/ui/Skeleton'
 import { PrecedenceGraphViewer } from '@/components/PrecedenceGraphViewer'
 import { SimulationPanel } from '@/components/SimulationPanel'
 import { SopActionEditor } from '@/components/SopActionEditor'
-import type { SOPVersion, SOPVersionSummary } from '@/api/types'
+import type { SOPVersionSummary } from '@/api/types'
 import { useAuthStore } from '@/store/authStore'
 
 // ─── KPI card ─────────────────────────────────────────────────────────────────
@@ -78,6 +79,20 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
     retry: 1,
   })
 
+  // Derive the active SOP version ID from the BFF response or the user selection
+  const activeSopVersionId =
+    selectedSopId ?? data?.active_sop_version_id
+
+  // Fetch the full SOP version (with its raw actions[]) directly.
+  // This is separate from workspace.actions (MOST workspace aggregate).
+  const sopQueryKey = ['sop-version', activeSopVersionId]
+  const { data: activeSopVersion } = useQuery({
+    queryKey: sopQueryKey,
+    queryFn: () => getSopVersion(activeSopVersionId!),
+    enabled: !!activeSopVersionId,
+    staleTime: 30_000,
+  })
+
   if (isLoading) return <DashboardSkeleton />
 
   if (isError) {
@@ -94,25 +109,6 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   if (!data) return null
 
   const { project, sop_versions, workspace, level_system, precedence_graph } = data
-
-  // Reconstruct an active SOPVersion-compatible object for the editor
-  const activeSopVersion: SOPVersion | null = data.active_sop_version_id
-    ? {
-        id: data.active_sop_version_id,
-        project_id: projectId,
-        version_no:
-          sop_versions.find((v) => v.id === data.active_sop_version_id)
-            ?.version_no ?? '?',
-        status:
-          sop_versions.find((v) => v.id === data.active_sop_version_id)
-            ?.status ?? 'Draft',
-        // The BFF returns actions as workspace.actions — map them to SOPAction[]
-        actions: (data.workspace.actions ?? []) as SOPVersion['actions'],
-      }
-    : null
-
-  // Editable query key matching the full SOP version fetch
-  const sopQueryKey = ['dashboard', projectId, selectedSopId]
 
   return (
     <div className="min-h-screen space-y-6 p-6">
