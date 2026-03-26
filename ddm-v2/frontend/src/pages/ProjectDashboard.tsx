@@ -6,6 +6,7 @@ import { DashboardSkeleton } from '@/components/ui/Skeleton'
 import { PrecedenceGraphViewer } from '@/components/PrecedenceGraphViewer'
 import { SimulationPanel } from '@/components/SimulationPanel'
 import { SopActionEditor } from '@/components/SopActionEditor'
+import { MIGenerator } from '@/components/MIGenerator'
 import type { SOPVersionSummary } from '@/api/types'
 import { useAuthStore } from '@/store/authStore'
 
@@ -200,9 +201,13 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
         <SopActionEditor sop={activeSopVersion} queryKey={sopQueryKey} />
       )}
 
+      {/* MI Naming Generator */}
+      <MIGenerator />
+
       {/* Simulation Panel */}
       <SimulationPanel
         projectId={projectId}
+        activeSopVersionId={activeSopVersionId}
         initialRequest={{ takt_time: 60, stations: [] }}
       />
     </div>
