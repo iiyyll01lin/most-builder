@@ -507,3 +507,110 @@ def test_ion_fan_o1_lookup_with_large_action_count():
     elapsed = time.monotonic() - start
     assert elapsed < 2.0, f"Ion fan O(1) lookup took {elapsed:.2f}s — possible O(n²) regression"
     assert result.station_results[0].ion_fan_required is False  # no LCD/DIMM/CPU actions
+
+
+# ---------------------------------------------------------------------------
+# Sprint 3 — Phase 1 & 3 tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_stress_5000_actions_completes_under_2_seconds():
+    """Simulation with 5,000 SIMO-mixed actions across 20 stations must
+    complete in < 2 seconds.  This guards against O(n²) regressions in the
+    SIMO grouping, ion-fan lookup, and glove-rule resolution hot paths."""
+    import random
+    import time
+
+    random.seed(42)
+    num_stations = 20
+    num_actions = 5000
+    station_ids = [f"ST-{i}" for i in range(num_stations)]
+
+    # Mix of regular, SIMO-paired, and CTQ actions.
+    actions: list[dict] = []
+    for i in range(num_actions):
+        group_id = f"sg-{i // 2}" if i % 4 == 0 else None  # every 4th action starts a SIMO pair
+        actions.append(
+            {
+                "id": f"act-{i}",
+                "description": f"Action {i}",
+                "seconds": round(random.uniform(0.05, 0.5), 3),
+                "station_id": station_ids[i % num_stations],
+                "object_category": random.choice(["機殼", "螺絲", "PCB", "MLB"]),
+                "component": f"Part-{i % 50}",
+                "glove_type": None,
+                "is_ctq": i % 20 == 0,
+                "is_simo": group_id is not None,
+                "simo_group_id": group_id,
+            }
+        )
+
+    station_assignments = [
+        {"id": sid, "name": f"Station {sid}", "employee_id": "emp-1", "sop_ids": ["sop-stress"]}
+        for sid in station_ids
+    ]
+    employees = [
+        {"id": "emp-1", "name": "Worker", "skill_level": "Expert", "efficiency_factor": 1.0, "certifications": []}
+    ]
+
+    start = time.monotonic()
+    result = run_line_balance(
+        project_id="proj-stress",
+        takt_time=999.0,
+        station_assignments=station_assignments,
+        employees=employees,
+        sop_versions=[{"id": "sop-stress", "project_id": "proj-stress", "actions": actions}],
+        glove_rules=[{"id": "glv-default", "object_category": "*", "action": "*", "glove_type": "General Glove"}],
+        ion_fan_bindings=[
+            {"id": "ion-pcb", "object_category": "PCB", "object_name": "PCB", "note": "ESD"},
+        ],
+    )
+    elapsed = time.monotonic() - start
+
+    assert elapsed < 2.0, f"5 000-action simulation took {elapsed:.2f}s (limit: 2s)"
+    assert len(result.station_results) == num_stations
+    assert result.balance_report is not None
+    assert 0.0 <= result.balance_report.balance_efficiency_pct <= 100.0
+    assert result.balance_report.balance_loss_pct == pytest.approx(
+        100.0 - result.balance_report.balance_efficiency_pct, abs=0.01
+    )
+    assert result.balance_report.bottleneck_station_id == result.bottleneck_station
+
+
+@pytest.mark.unit
+def test_balance_report_fields_are_correct():
+    """BalanceReport KPIs must be mathematically consistent."""
+    result = run_line_balance(
+        project_id="proj-kpi",
+        takt_time=10.0,
+        station_assignments=[
+            {"id": "ST-A", "name": "A", "employee_id": "emp-1", "sop_ids": []},
+            {"id": "ST-B", "name": "B", "employee_id": "emp-1", "sop_ids": []},
+        ],
+        employees=[
+            {"id": "emp-1", "name": "Alice", "skill_level": "Expert", "efficiency_factor": 1.0, "certifications": []}
+        ],
+        sop_versions=[
+            {
+                "id": "sop-1",
+                "project_id": "proj-kpi",
+                "actions": [
+                    {"id": "a1", "description": "A", "seconds": 8.0, "station_id": "ST-A",
+                     "is_ctq": False, "glove_type": None, "component": None, "object_category": None},
+                    {"id": "a2", "description": "B", "seconds": 4.0, "station_id": "ST-B",
+                     "is_ctq": False, "glove_type": None, "component": None, "object_category": None},
+                ],
+            }
+        ],
+        glove_rules=[],
+        ion_fan_bindings=[],
+    )
+    # ST-A: actual=8s, ST-B: actual=4s.
+    # cycle_time = 8s (max).  total = 12s.  n = 2.
+    # balance_rate = 12 / (8 * 2) = 0.75
+    # balance_efficiency_pct = 75.0,  balance_loss_pct = 25.0
+    assert result.balance_report is not None
+    assert result.balance_report.balance_efficiency_pct == pytest.approx(75.0, abs=0.5)
+    assert result.balance_report.balance_loss_pct == pytest.approx(25.0, abs=0.5)
+    assert result.balance_report.bottleneck_station_id == "ST-A"

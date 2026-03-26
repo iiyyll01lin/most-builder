@@ -393,6 +393,25 @@ class StationResult(BaseModel):
     skill_alerts: list[str] = Field(default_factory=list)
 
 
+class BalanceReport(BaseModel):
+    """Line balance efficiency KPIs — IE/PE summary of how evenly work is
+    distributed across stations.
+
+    Efficiency = ΣCT / (n × CT_max) × 100
+    Loss      = 100 − Efficiency
+    """
+
+    balance_efficiency_pct: float = Field(
+        description="Efficiency = ΣCT / (n × CT_max) × 100; 100% = perfectly balanced"
+    )
+    balance_loss_pct: float = Field(
+        description="Balance loss = 100 − efficiency; >15% triggers redistribution review"
+    )
+    bottleneck_station_id: str = Field(
+        description="Station ID with the longest effective cycle time"
+    )
+
+
 class LineBalanceResponse(BaseModel):
     bottleneck_station: str
     cycle_time: float
@@ -400,6 +419,7 @@ class LineBalanceResponse(BaseModel):
     balance_rate: float
     alerts: list[str]
     station_results: list[StationResult]
+    balance_report: BalanceReport | None = None
 
 
 class ActionReassignRequest(BaseModel):

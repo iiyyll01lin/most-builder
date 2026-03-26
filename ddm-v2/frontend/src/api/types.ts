@@ -266,6 +266,17 @@ export interface LineBalanceResponse {
   balance_rate: number
   alerts: string[]
   station_results: StationResult[]
+  balance_report?: BalanceReport
+}
+
+/** Line Balance Efficiency KPIs returned by the balancing algorithm. */
+export interface BalanceReport {
+  /** Efficiency = ΣCT / (n × CT_max) × 100 */
+  balance_efficiency_pct: number
+  /** Balance loss = 100 − efficiency */
+  balance_loss_pct: number
+  /** Station ID with the longest effective cycle time */
+  bottleneck_station_id: string
 }
 
 export interface AsyncJobResponse {

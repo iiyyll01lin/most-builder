@@ -26,9 +26,11 @@ interface StationConfig {
 function StationCard({
   station,
   taktTime,
+  isBottleneck,
 }: {
   station: StationResult
   taktTime: number
+  isBottleneck?: boolean
 }) {
   const pct = Math.min(100, (station.actual_time / taktTime) * 100)
   const hasSkillAlerts = (station.skill_alerts?.length ?? 0) > 0
@@ -40,7 +42,9 @@ function StationCard({
         'rounded-xl border p-4 space-y-2 transition-colors',
         station.is_overloaded
           ? 'border-red-600/60 bg-red-950/30'
-          : 'border-gray-700 bg-gray-800/40',
+          : isBottleneck
+            ? 'border-amber-500/70 bg-amber-950/20'
+            : 'border-gray-700 bg-gray-800/40',
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-2 flex-wrap">
@@ -52,6 +56,11 @@ function StationCard({
           {station.is_overloaded && (
             <span className="shrink-0 rounded bg-red-800 px-2 py-0.5 text-xs text-red-100">
               OVERLOADED
+            </span>
+          )}
+          {isBottleneck && (
+            <span className="shrink-0 rounded bg-amber-700/80 px-2 py-0.5 text-xs text-amber-100 font-semibold">
+              BOTTLENECK
             </span>
           )}
           {hasSkillAlerts && (
@@ -410,28 +419,54 @@ export function SimulationPanel({ projectId, initialRequest, activeSopVersionId 
       {/* Results */}
       {simState === 'complete' && result && (
         <div className="space-y-4 pt-2">
-          {/* KPI strip */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* KPI strip */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            {/* Core simulation KPIs */}
             {[
-              { label: 'Cycle Time', value: `${result.cycle_time.toFixed(2)}s`, highlight: false },
-              { label: 'UPH', value: result.uph.toString(), highlight: false },
+              { label: 'Cycle Time', value: `${result.cycle_time.toFixed(2)}s`, colorClass: 'text-gray-100' },
+              { label: 'UPH', value: result.uph.toString(), colorClass: 'text-gray-100' },
               {
                 label: 'Balance Rate',
                 value: `${(result.balance_rate * 100).toFixed(1)}%`,
-                highlight: result.balance_rate >= 0.85,
+                colorClass: result.balance_rate >= 0.85 ? 'text-green-400' : 'text-gray-100',
               },
-              { label: 'Bottleneck', value: result.bottleneck_station, highlight: false },
-            ].map(({ label, value, highlight }) => (
+              { label: 'Bottleneck', value: result.bottleneck_station, colorClass: 'text-gray-100' },
+            ].map(({ label, value, colorClass }) => (
               <div
                 key={label}
                 className="rounded-xl border border-gray-700 bg-gray-800/50 p-3"
               >
                 <p className="text-xs text-gray-500">{label}</p>
-                <p className={`mt-1 text-lg font-bold ${highlight ? 'text-green-400' : 'text-gray-100'}`}>
-                  {value}
-                </p>
+                <p className={`mt-1 text-lg font-bold ${colorClass}`}>{value}</p>
               </div>
             ))}
+            {/* Balance Efficiency KPIs from BalanceReport */}
+            {result.balance_report && (() => {
+              const eff = result.balance_report.balance_efficiency_pct
+              const effColor = eff >= 85 ? 'text-green-400' : eff >= 70 ? 'text-amber-400' : 'text-red-400'
+              return (
+                <>
+                  <div className="rounded-xl border border-gray-700 bg-gray-800/50 p-3">
+                    <p className="text-xs text-gray-500">Efficiency</p>
+                    <p className={`mt-1 text-lg font-bold ${effColor}`}>
+                      {eff.toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-gray-700 bg-gray-800/50 p-3">
+                    <p className="text-xs text-gray-500">Balance Loss</p>
+                    <p className={`mt-1 text-lg font-bold ${
+                      result.balance_report.balance_loss_pct > 30
+                        ? 'text-red-400'
+                        : result.balance_report.balance_loss_pct > 15
+                          ? 'text-amber-400'
+                          : 'text-gray-100'
+                    }`}>
+                      {result.balance_report.balance_loss_pct.toFixed(1)}%
+                    </p>
+                  </div>
+                </>
+              )
+            })()}
           </div>
 
           {/* Simulation-level alerts */}
@@ -447,7 +482,12 @@ export function SimulationPanel({ projectId, initialRequest, activeSopVersionId 
           {/* Station cards */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {result.station_results.map((s) => (
-              <StationCard key={s.id} station={s} taktTime={taktTime} />
+              <StationCard
+                key={s.id}
+                station={s}
+                taktTime={taktTime}
+                isBottleneck={s.id === result.bottleneck_station}
+              />
             ))}
           </div>
         </div>
