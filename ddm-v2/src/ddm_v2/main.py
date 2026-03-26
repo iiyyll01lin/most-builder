@@ -56,10 +56,15 @@ async def lifespan(app: FastAPI):
 
         import alembic.command
         import alembic.config
-
-        alembic_cfg = alembic.config.Config(str(_Path(__file__).resolve().parents[3] / "alembic.ini"))
-        # Override the URL; Alembic env.py reads DDM_DATABASE_URL from os.environ
         import os as _os
+
+        # Build the config programmatically so we never need alembic.ini on disk.
+        # main.py lives at <root>/src/ddm_v2/main.py → parent×3 = <root>
+        _root = _Path(__file__).resolve().parent.parent.parent
+        alembic_cfg = alembic.config.Config()
+        alembic_cfg.set_main_option("script_location", str(_root / "alembic"))
+        alembic_cfg.set_main_option("prepend_sys_path", str(_root / "src"))
+        # Alembic env.py reads DDM_DATABASE_URL from os.environ
         _os.environ.setdefault("DDM_DATABASE_URL", db_url)
         await asyncio.to_thread(alembic.command.upgrade, alembic_cfg, "head")
 
