@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { updateSopActions } from '@/api/sop'
+import { generateSopActions } from '@/api/ai'
 import type { SOPAction, SOPVersion } from '@/api/types'
 
 // ─── Drag-and-drop reorder helpers ───────────────────────────────────────────
@@ -198,8 +199,28 @@ export function SopActionEditor({ sop, queryKey }: SopActionEditorProps) {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
   const [isDirty, setIsDirty] = useState(false)
+  const [showAiModal, setShowAiModal] = useState(false)
+  const [aiInstruction, setAiInstruction] = useState('')
 
   const canEdit = sop.status === 'Draft'
+
+  // ── AI Copilot mutation ────────────────────────────────────────────────────
+  const aiMutation = useMutation({
+    mutationFn: (instruction: string) =>
+      generateSopActions({ instruction, project_id: sop.project_id }),
+    onSuccess: (response) => {
+      setLocalActions((prev) => [...prev, ...response.actions])
+      setIsDirty(true)
+      setShowAiModal(false)
+      setAiInstruction('')
+      toast.success(
+        `✨ AI generated ${response.actions.length} action(s) — review and save when ready.`,
+      )
+    },
+    onError: () => {
+      toast.error('AI generation failed. Check your instruction and try again.')
+    },
+  })
 
   // ── Optimistic save mutation ───────────────────────────────────────────────
   const mutation = useMutation({
@@ -315,6 +336,14 @@ export function SopActionEditor({ sop, queryKey }: SopActionEditorProps) {
 
         {canEdit && (
           <div className="flex gap-2">
+            <button
+              onClick={() => setShowAiModal(true)}
+              disabled={aiMutation.isPending}
+              title="AI Auto-Generate SOP actions from natural language"
+              className="rounded-lg border border-purple-700/60 bg-purple-900/30 px-3 py-1.5 text-xs text-purple-300 hover:bg-purple-800/40 transition-colors disabled:opacity-40"
+            >
+              ✨ AI
+            </button>
             {isDirty && (
               <button
                 onClick={handleDiscard}
@@ -394,6 +423,71 @@ export function SopActionEditor({ sop, queryKey }: SopActionEditorProps) {
           {localActions.reduce((s, a) => s + a.seconds, 0).toFixed(2)}s
         </span>
       </p>
+
+      {/* ── AI Copilot Modal ─────────────────────────────────────────────── */}
+      {showAiModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ai-modal-title"
+        >
+          <div className="w-full max-w-lg rounded-2xl border border-purple-700/50 bg-gray-900 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 id="ai-modal-title" className="text-base font-semibold text-purple-200">
+                ✨ AI Auto-Generate SOP Actions
+              </h3>
+              <button
+                onClick={() => { setShowAiModal(false); setAiInstruction('') }}
+                disabled={aiMutation.isPending}
+                aria-label="Close AI modal"
+                className="text-lg text-gray-500 transition-colors hover:text-gray-300 disabled:opacity-40"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="mb-3 text-xs text-gray-400">
+              Describe the manufacturing operation in plain language. The AI will convert it into
+              structured MOST SOP actions with correct CTQ flags, required skills, and glove types.
+              Generated actions will be appended for your review — save when satisfied.
+            </p>
+
+            <textarea
+              value={aiInstruction}
+              onChange={(e) => setAiInstruction(e.target.value)}
+              disabled={aiMutation.isPending}
+              placeholder="e.g. Assemble motherboard with 4 screws, then scan the barcode label"
+              rows={4}
+              className="mb-4 w-full resize-none rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:border-purple-500 focus:outline-none disabled:opacity-50"
+            />
+
+            {aiMutation.isPending && (
+              <div className="mb-3 flex items-center gap-2 rounded border border-purple-700/30 bg-purple-900/30 px-3 py-2 text-xs text-purple-300">
+                <span className="animate-spin inline-block">⟳</span>
+                AI is analyzing SOP…
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setShowAiModal(false); setAiInstruction('') }}
+                disabled={aiMutation.isPending}
+                className="rounded-lg border border-gray-600 px-3 py-1.5 text-xs text-gray-400 transition-colors hover:bg-gray-800 disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => aiMutation.mutate(aiInstruction)}
+                disabled={!aiInstruction.trim() || aiMutation.isPending}
+                className="rounded-lg bg-purple-700 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-600 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {aiMutation.isPending ? 'Generating…' : 'Generate Actions'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

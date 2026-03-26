@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from ddm_v2.api.routes.ai import router as ai_router
 from ddm_v2.api.routes.auth import router as auth_router
 from ddm_v2.api.routes.bff import router as bff_router
 from ddm_v2.api.routes.level import router as level_router
@@ -63,6 +64,7 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
     app.state.settings = app_settings
     app.state.store = JsonStore(db_path or app_settings.db_path)
 
+    app.include_router(ai_router)
     app.include_router(auth_router)
     app.include_router(bff_router)
     app.include_router(master_router)
