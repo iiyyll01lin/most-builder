@@ -264,8 +264,8 @@ def test_complete_pe_workflow_with_simo_and_collaborative_steps(client, engineer
     )
     assert workspace.status_code == 200
     ws_body = workspace.json()
-    # PCB actions get ESD Glove from stored master rule, not hardcoded dict
-    assert ws_body["steps"][0]["glove_type"] == "ESD Glove"
+    # PCB actions get 兩只半指手套 from stored master rule (domain: PCB is ESD-critical, requires half-finger gloves)
+    assert ws_body["steps"][0]["glove_type"] == "兩只半指手套"
 
     # 3. Commit actions to SOP (add simo_group_id to persisted actions)
     actions = ws_body["actions"]
@@ -344,4 +344,142 @@ def test_complete_pe_workflow_with_simo_and_collaborative_steps(client, engineer
     )
     assert publish.status_code == 200
     assert publish.json()["published_at"] is not None
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 E2E: IE workflow that triggers Ion Fan + Half-Finger Glove + 1P2M
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.e2e
+def test_ie_pe_workflow_ion_fan_glove_and_1p2m_line_balance(client, engineer_headers, manager_headers):
+    """Full IE/PE workflow exercising the Phase 3 domain rules:
+    1. MOST calculate step for MLB (主板/MLB) → glove recommendation reflects
+       the domain-correct '兩只半指手套'.
+    2. Save workspace with MLB component action tagged to ST-3-1a.
+    3. Run line balance with machine_count=2 (1P2M) on ST-3-1a.
+    4. Verify ion_fan_required=True and '兩只半指手套' in required_gloves.
+    5. Verify machine_effective_time is halved relative to actual_time.
+    6. Generate MI name using the 8-field convention.
+    """
+    project_id = "proj-atlas"
+
+    # Step 1: Calculate MOST step for MLB
+    calc = client.post(
+        "/api/v1/most/calculate",
+        headers=engineer_headers,
+        json={
+            "steps": [
+                {
+                    "action": "Install",
+                    "primary_action": "Install",
+                    "object": "MLB",
+                    "object_category": "主板/MLB",
+                    "seq_type": "GENERAL",
+                    "hand": "Right Hand",
+                    "from_location": "Component Bin",
+                    "to_location": "Chassis",
+                    "params": {"A1": 1, "B1": 0, "G": 3, "A2": 1, "B2": 0, "P": 3, "A3": 1},
+                    "frequency": 1,
+                }
+            ]
+        },
+    )
+    assert calc.status_code == 200
+    breakdown = calc.json()["breakdown"]
+    # The breakdown's glove_type should reflect MLB category
+    assert breakdown[0]["glove_type"] is not None
+
+    # Step 2: Create SOP and save workspace with MLB action at ST-3-1a
+    sop = client.post(
+        "/api/v1/sop/versions",
+        headers=engineer_headers,
+        json={"project_id": project_id, "version_no": "V-1P2M-E2E", "actions": []},
+    )
+    assert sop.status_code == 201
+    sop_id = sop.json()["id"]
+
+    workspace = client.put(
+        f"/api/v1/most/workspaces/{project_id}",
+        headers=engineer_headers,
+        json={
+            "sop_version_id": sop_id,
+            "steps": [
+                {
+                    "id": "step-mlb-1",
+                    "action": "Install",
+                    "primary_action": "Install",
+                    "object": "MLB",
+                    "object_category": "主板/MLB",
+                    "seq_type": "GENERAL",
+                    "hand": "Right Hand",
+                    "from_location": "Component Bin",
+                    "to_location": "Chassis",
+                    "params": {"A1": 1, "B1": 0, "G": 3, "A2": 1, "B2": 0, "P": 3, "A3": 1},
+                    "frequency": 1,
+                    "is_ctq": True,
+                    "component": "MLB",
+                    "station_id": "ST-3-1a",
+                }
+            ],
+            "wi_components": [],
+            "selected_step_ids": [],
+        },
+    )
+    assert workspace.status_code == 200
+
+    actions = workspace.json()["actions"]
+    for action in actions:
+        action["station_id"] = "ST-3-1a"
+    client.put(f"/api/v1/sop/versions/{sop_id}/actions", headers=engineer_headers, json=actions)
+
+    # Step 3: Run line balance with 1P2M (machine_count=2) on ST-3-1a
+    sim = client.post(
+        "/api/v1/simulation/line-balance",
+        headers=engineer_headers,
+        json={
+            "project_id": project_id,
+            "takt_time": 20.0,
+            "stations": [
+                {
+                    "id": "ST-3-1a",
+                    "employee_id": "emp-eva",
+                    "sop_ids": [sop_id],
+                    "machine_count": 2,
+                }
+            ],
+        },
+    )
+    assert sim.status_code == 200
+    body = sim.json()
+    station = body["station_results"][0]
+
+    # Step 4: Verify ion fan and glove rules apply
+    assert station["ion_fan_required"] is True, "MLB must mandate ion fan"
+    assert any("半指" in g for g in station["required_gloves"]), (
+        f"Expected half-finger gloves for MLB; got: {station['required_gloves']}"
+    )
+
+    # Step 5: Verify 1P2M machine_effective_time is halved
+    assert station["machine_count"] == 2
+    assert station["machine_effective_time"] is not None
+    assert station["machine_effective_time"] == pytest.approx(station["actual_time"] / 2, abs=0.01)
+
+    # Step 6: Validate MI naming with 8-field convention
+    mi = client.post(
+        "/api/v1/mi-naming/validate",
+        headers=engineer_headers,
+        json={"fields": {
+            "model5": "K860G", "status": "ASSY", "pick_type": "FPT",
+            "process": "BASY", "cfi": "CFI01", "line": "L3",
+            "area": "ST-3-1a", "ct": str(round(station["actual_time"], 1)),
+        }},
+    )
+    assert mi.status_code == 200
+    mi_body = mi.json()
+    assert mi_body["is_valid"] is True
+    assert mi_body["suggested_name"] is not None
+    # Name must use '_' separator and contain all 8 segments
+    assert len(mi_body["suggested_name"].split("_")) == 8
+
 
