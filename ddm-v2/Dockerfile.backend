@@ -35,15 +35,15 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 
 # Prefer offline wheels when present; fall back to PyPI transparently.
-COPY docker-wheels ./docker-wheels
+# The trailing slash form is safe even if docker-wheels/ contains only a .gitkeep.
+COPY docker-wheels/ ./docker-wheels/
 
 RUN pip install --upgrade pip \
-    && pip install \
-        --find-links ./docker-wheels \
-        --no-index \
-        --no-deps \
-        -e . 2>/dev/null \
-    || pip install -e . \
+    && if ls ./docker-wheels/*.whl > /dev/null 2>&1; then \
+         pip install --find-links ./docker-wheels -e . ; \
+       else \
+         pip install -e . ; \
+       fi \
     && mkdir -p /app/data \
     && chown -R appuser:appuser /app
 

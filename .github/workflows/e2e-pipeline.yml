@@ -68,14 +68,6 @@ jobs:
       - name: Build Docker images
         run: docker compose -f docker-compose.test.yml build --no-cache
 
-      - name: Seed test database into named volume
-        run: |
-          # Start only the backend so we can seed the DB before tests run
-          docker compose -f docker-compose.test.yml up -d backend
-          # Give the container a moment to create the volume directory
-          sleep 5
-          docker cp data/runtime-db.json ddm-v2-backend-test:/app/data/runtime-db.json || true
-
       - name: Start full stack (backend + frontend)
         run: docker compose -f docker-compose.test.yml up -d
 
@@ -89,7 +81,7 @@ jobs:
         run: |
           echo "Waiting for frontend Nginx..."
           timeout 30 bash -c \
-            'until curl -sf http://localhost:3000; do sleep 2; done'
+            'until curl -sf http://localhost:4000; do sleep 2; done'
 
       # ── 6. Run Playwright E2E suite ───────────────────────────────────────────
       - name: Run Playwright tests
@@ -97,7 +89,7 @@ jobs:
         env:
           # Skip the globalSetup docker-compose logic — stack is already up
           E2E_SKIP_DOCKER: 'true'
-          E2E_BASE_URL: 'http://localhost:3000'
+          E2E_BASE_URL: 'http://localhost:4000'
         run: npx playwright test
 
       # ── 7. Collect and upload artefacts ──────────────────────────────────────

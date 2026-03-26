@@ -12,6 +12,19 @@
 name: ddm-v2-e2e
 
 services:
+  # ── DB seed init container ───────────────────────────────────────────────────
+  # Copies runtime-db.json into the shared volume BEFORE the backend starts so
+  # the in-memory store loads real seed data on first boot.
+  db-init:
+    image: busybox:latest
+    volumes:
+      - ./data:/seed:ro
+      - e2e_data:/app/data
+    command: >
+      sh -c "cp /seed/runtime-db.json /app/data/runtime-db.json &&
+             echo '[db-init] runtime-db.json seeded OK'"
+    restart: "no"
+
   # ── FastAPI backend ──────────────────────────────────────────────────────────
   backend:
     build:
@@ -47,6 +60,9 @@ services:
       timeout: 5s
       start_period: 25s
       retries: 6
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
     networks:
       - app_net
     restart: "no"
@@ -59,7 +75,7 @@ services:
     image: ddm-v2-frontend:test
     container_name: ddm-v2-frontend-test
     ports:
-      - "3000:80"
+      - "4000:80"
     depends_on:
       backend:
         condition: service_healthy
