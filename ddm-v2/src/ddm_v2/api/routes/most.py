@@ -156,7 +156,7 @@ def glove_check(payload: GloveCheckRequest, store: JsonStore = Depends(get_store
 
 @router.post("/mi-naming/validate", response_model=MINamingValidationResponse)
 def validate_mi_naming(payload: MINamingValidationRequest, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    rules = store.list_collection("mi_naming_rules")
+    rules = sorted(store.list_collection("mi_naming_rules"), key=lambda r: r.get("position", 99))
     errors = []
     parts = []
     for rule in rules:
@@ -166,7 +166,8 @@ def validate_mi_naming(payload: MINamingValidationRequest, store: JsonStore = De
             errors.append(f"{rule['label']} is required.")
         if value:
             parts.append(value)
-    return MINamingValidationResponse(is_valid=not errors, errors=errors, suggested_name="__".join(parts) if parts else None)
+    # MI naming convention: segments joined by single '_'
+    return MINamingValidationResponse(is_valid=not errors, errors=errors, suggested_name="_".join(parts) if parts else None)
 
 
 @router.post("/most/validate-level")

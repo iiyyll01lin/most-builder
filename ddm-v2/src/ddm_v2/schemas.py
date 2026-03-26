@@ -126,6 +126,7 @@ class EmployeeEntry(BaseModel):
     station_type: str
     skill_level: SkillLevel
     efficiency_factor: float = Field(ge=0.5, le=1.5)
+    certifications: list[str] = Field(default_factory=list)
 
 
 class StationEntry(BaseModel):
@@ -332,6 +333,7 @@ class SOPAction(BaseModel):
     level_tag: str | None = None
     is_simo: bool = False
     simo_group_id: str | None = None
+    required_skill: str | None = None
 
 
 class SOPVersion(BaseModel):
@@ -363,6 +365,7 @@ class StationAssignment(BaseModel):
     id: str
     sop_ids: list[str] = Field(default_factory=list)
     employee_id: str | None = None
+    machine_count: int = Field(default=1, ge=1, description="Number of machines this operator runs simultaneously (1P2M = 2)")
 
 
 class LineBalanceRequest(BaseModel):
@@ -379,12 +382,15 @@ class StationResult(BaseModel):
     efficiency_factor: float
     standard_time: float
     actual_time: float
+    machine_count: int = 1
+    machine_effective_time: float | None = None
     actions: list[dict[str, Any]]
     is_overloaded: bool
     required_gloves: list[str] = Field(default_factory=list)
     ctq_actions: list[str] = Field(default_factory=list)
     ion_fan_required: bool = False
     ion_fan_targets: list[str] = Field(default_factory=list)
+    skill_alerts: list[str] = Field(default_factory=list)
 
 
 class LineBalanceResponse(BaseModel):

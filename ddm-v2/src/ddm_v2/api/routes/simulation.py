@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+
 try:
     from datetime import UTC
 except ImportError:
@@ -48,6 +49,7 @@ def _build_station_list(payload: LineBalanceRequest, store: JsonStore) -> list[d
                 "name": station["name"],
                 "employee_id": assignment.employee_id or station.get("employee_id") or default_employee_id,
                 "sop_ids": list(assignment.sop_ids or []),
+                "machine_count": int(assignment.machine_count),
             }
         )
     return stations
