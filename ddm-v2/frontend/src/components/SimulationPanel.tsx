@@ -152,6 +152,18 @@ function StationCard({
         </div>
       )}
 
+      {/* Station-level precautions (aggregated from auto-binding rule engine) */}
+      {(station.precautions?.length ?? 0) > 0 && (
+        <div className="space-y-1 rounded bg-yellow-950/30 border border-yellow-700/40 p-2">
+          <p className="text-[10px] font-semibold text-yellow-400 uppercase tracking-wide">
+            ⚠ Precautions
+          </p>
+          {station.precautions!.map((p, i) => (
+            <p key={i} className="text-[10px] text-yellow-300 leading-tight">· {p}</p>
+          ))}
+        </div>
+      )}
+
       {/* Yamazumi action list — collapsible, text wrapping enabled */}
       {station.actions.length > 0 && (
         <div>
@@ -164,19 +176,35 @@ function StationCard({
           </button>
           {showActions && (
             <ol className="mt-1.5 space-y-0.5">
-              {(station.actions as Array<{ id: string; description: string; seconds: number; is_simo?: boolean; simo_group_id?: string | null }>).map((a, idx) => (
-                <li key={a.id ?? idx} className="flex items-start gap-1.5 text-[10px] text-gray-400">
-                  <span className="shrink-0 text-gray-600">{idx + 1}.</span>
-                  {/* break-words + whitespace-normal prevents Yamazumi text overflow */}
-                  <span className="break-words whitespace-normal min-w-0 flex-1">{a.description}</span>
-                  <span className="shrink-0 text-gray-600">{a.seconds.toFixed(2)}s</span>
-                  {a.is_simo && (
-                    <span
-                      className="shrink-0 rounded bg-purple-900/60 px-1 py-0.5 text-[9px] text-purple-300 cursor-help"
-                      title="SIMO — time parallelized; only bottleneck hand counted"
-                    >
-                      SIMO
-                    </span>
+              {(station.actions as Array<{ id: string; description: string; seconds: number; is_simo?: boolean; simo_group_id?: string | null; precautions?: string[] }>).map((a, idx) => (
+                <li key={a.id ?? idx} className="space-y-0.5">
+                  <div className="flex items-start gap-1.5 text-[10px] text-gray-400">
+                    <span className="shrink-0 text-gray-600">{idx + 1}.</span>
+                    {/* break-words + whitespace-normal prevents Yamazumi text overflow */}
+                    <span className="break-words whitespace-normal min-w-0 flex-1">{a.description}</span>
+                    <span className="shrink-0 text-gray-600">{a.seconds.toFixed(2)}s</span>
+                    {a.is_simo && (
+                      <span
+                        className="shrink-0 rounded bg-purple-900/60 px-1 py-0.5 text-[9px] text-purple-300 cursor-help"
+                        title="SIMO — time parallelized; only bottleneck hand counted"
+                      >
+                        SIMO
+                      </span>
+                    )}
+                  </div>
+                  {/* Per-action precaution warnings */}
+                  {(a.precautions?.length ?? 0) > 0 && (
+                    <div className="ml-4 space-y-0.5">
+                      {a.precautions!.map((p, pi) => (
+                        <div
+                          key={pi}
+                          className="flex items-start gap-1 rounded bg-yellow-900/20 border border-yellow-800/30 px-1.5 py-0.5 text-[9px] text-yellow-300 leading-tight"
+                        >
+                          <span className="shrink-0">⚠</span>
+                          <span>{p}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </li>
               ))}

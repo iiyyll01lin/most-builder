@@ -103,6 +103,48 @@ DEFAULT_STATE = {
         {"id": "pre-esd", "process": "Assembly", "category": "ESD", "description": "Enable ion fan for exposed PCB handling."},
         {"id": "pre-torque", "process": "Assembly", "category": "Tooling", "description": "Verify torque tool calibration before shift start."},
     ],
+    # ── Auto-binding Precaution Rules (ddm-struct-0819.xlsx spec) ─────────────
+    # Each rule is matched per SOP action:
+    #   trigger_type = "component" → match action["component"] (case-insensitive substring)
+    #   trigger_type = "tool"      → match action["tool"]      (case-insensitive substring)
+    # Matched texts are appended to action["precautions"] and StationResult.precautions.
+    "precaution_rules": [
+        {
+            "id": "prule-lcd-1",
+            "trigger_type": "component",
+            "trigger_value": "LCD",
+            "text": "擦拭LCD时需用手扶着LCD",
+            "category": "Handling",
+        },
+        {
+            "id": "prule-lcd-2",
+            "trigger_type": "component",
+            "trigger_value": "LCD",
+            "text": "禁止用任何液体直接倒在LCD Panel上",
+            "category": "Handling",
+        },
+        {
+            "id": "prule-elec-driver",
+            "trigger_type": "tool",
+            "trigger_value": "电动起子",
+            "text": "电动起子高度需距离机台 22~35cm",
+            "category": "Tooling",
+        },
+        {
+            "id": "prule-tp-tool",
+            "trigger_type": "tool",
+            "trigger_value": "TP压合治具",
+            "text": "需記錄气压值 (Mpa) 與压强值 (N/cm²)",
+            "category": "Equipment",
+        },
+        {
+            "id": "prule-lock-tool",
+            "trigger_type": "tool",
+            "trigger_value": "开机键锁附治具",
+            "text": "需記錄气压值 (Mpa) 與压强值 (N/cm²)",
+            "category": "Equipment",
+        },
+    ],
     "glove_rules": [
         # High-value ESD-sensitive boards and processors → two half-finger gloves
         {"id": "glv-mlb", "object_category": "主板/MLB", "action": "*", "glove_type": "兩只半指手套"},

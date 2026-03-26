@@ -5,6 +5,7 @@ from collections.abc import Callable
 from copy import deepcopy
 
 from ddm_v2.schemas import BalanceReport, LineBalanceResponse, SkillLevel, StationResult
+from ddm_v2.services.most_workspace_service import _apply_precaution_rules
 
 
 def check_skill_certification(
@@ -71,6 +72,7 @@ def run_line_balance(
     sop_versions: list[dict],
     glove_rules: list[dict],
     ion_fan_bindings: list[dict],
+    precaution_rules: list[dict] | None = None,
     progress_callback: Callable[[int, str], None] | None = None,
 ) -> LineBalanceResponse:
     def _emit(pct: int, msg: str) -> None:
@@ -212,6 +214,7 @@ def run_line_balance(
                         "station_id": action.get("station_id"),
                         "is_simo": bool(action.get("is_simo")),
                         "simo_group_id": action.get("simo_group_id"),
+                        "precautions": _apply_precaution_rules(action, precaution_rules or []),
                     }
                     for action in station_actions
                 ],
@@ -221,6 +224,13 @@ def run_line_balance(
                 ion_fan_required=bool(ion_fan_targets),
                 ion_fan_targets=sorted(ion_fan_targets),
                 skill_alerts=station_skill_alerts,
+                precautions=sorted(
+                    {
+                        text
+                        for action in station_actions
+                        for text in _apply_precaution_rules(action, precaution_rules or [])
+                    }
+                ),
             )
         )
 

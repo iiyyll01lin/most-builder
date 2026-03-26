@@ -68,6 +68,10 @@ export interface SOPAction {
   is_simo: boolean
   simo_group_id?: string
   required_skill?: string
+  /** Auto-binding precautions from the rule engine (LCD handling, electric screwdriver, etc.) */
+  precautions?: string[]
+  /** Equipment dynamic parameters for pressing tools: air_pressure_mpa, force_n_cm2 */
+  equipment_params?: Record<string, string> | null
 }
 
 export interface SOPVersion {
@@ -220,6 +224,8 @@ export interface StationResult {
   machine_count?: number
   machine_effective_time?: number | null
   skill_alerts?: string[]
+  /** Aggregated auto-binding precaution texts for all actions at this station */
+  precautions?: string[]
 }
 
 // ─── Master Data ──────────────────────────────────────────────────────────────

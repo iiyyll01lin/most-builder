@@ -72,6 +72,37 @@ def _normalize_step(raw_step: dict[str, Any], index: int) -> dict[str, Any]:
     return step
 
 
+def _apply_precaution_rules(action: dict[str, Any], rules: list[dict[str, Any]]) -> list[str]:
+    """Return the list of precaution texts that apply to *action* based on
+    the stored ``precaution_rules`` master data.
+
+    Matching is case-insensitive substring:
+    - ``trigger_type == "component"`` → checked against ``action["component"]``
+    - ``trigger_type == "tool"``      → checked against ``action["tool"]``
+
+    Existing precautions already on the action are preserved; only new texts
+    (not already present) are appended so that re-running is idempotent.
+    """
+    existing: list[str] = list(action.get("precautions") or [])
+    added: set[str] = set(existing)
+    result: list[str] = list(existing)
+    component = (action.get("component") or "").lower()
+    tool = (action.get("tool") or "").lower()
+    for rule in rules:
+        trigger_type = rule.get("trigger_type", "")
+        trigger_value = (rule.get("trigger_value") or "").lower()
+        text: str = rule.get("text", "")
+        if not trigger_value or not text or text in added:
+            continue
+        if trigger_type == "component" and component and trigger_value in component:
+            result.append(text)
+            added.add(text)
+        elif trigger_type == "tool" and tool and trigger_value in tool:
+            result.append(text)
+            added.add(text)
+    return result
+
+
 def _resolve_glove_from_rules(
     object_category: str | None,
     action: str | None,
@@ -110,6 +141,7 @@ def build_workspace_snapshot(
     selected_step_ids: list[str] | None = None,
     workspace_id: str | None = None,
     glove_rules: list[dict[str, Any]] | None = None,
+    precaution_rules: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     normalized_steps = [_normalize_step(step, index) for index, step in enumerate(raw_steps)]
     result = calculate_workflow([_as_most_step(step) for step in normalized_steps])
@@ -171,6 +203,8 @@ def build_workspace_snapshot(
                 "level_tag": step.get("level_tag") or "",
                 "is_simo": metric.is_simo,
                 "simo_group_id": step.get("simo_group_id"),
+                "precautions": _apply_precaution_rules(step, precaution_rules or []),
+                "equipment_params": step.get("equipment_params") or None,
             }
         )
 

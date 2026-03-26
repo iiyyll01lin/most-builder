@@ -67,6 +67,7 @@ def simulate(payload: LineBalanceRequest, store: JsonStore = Depends(get_store),
             sop_versions=store.list_collection("sop_versions"),
             glove_rules=store.list_collection("glove_rules"),
             ion_fan_bindings=store.list_collection("ion_fan_bindings"),
+            precaution_rules=store.list_collection("precaution_rules"),
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -112,6 +113,7 @@ async def simulate_async(
         "sop_versions": list(store.list_collection("sop_versions")),
         "glove_rules": list(store.list_collection("glove_rules")),
         "ion_fan_bindings": list(store.list_collection("ion_fan_bindings")),
+        "precaution_rules": list(store.list_collection("precaution_rules")),
         "store": store,
     }
     return {"job_id": job_id, "status": "accepted"}
@@ -173,6 +175,7 @@ async def ws_line_balance(
                 sop_versions=job["sop_versions"],
                 glove_rules=job["glove_rules"],
                 ion_fan_bindings=job["ion_fan_bindings"],
+                precaution_rules=job.get("precaution_rules", []),
                 progress_callback=_progress_cb,
             )
             snapshot = result.model_dump()

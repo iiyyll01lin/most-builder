@@ -614,3 +614,194 @@ def test_balance_report_fields_are_correct():
     assert result.balance_report.balance_efficiency_pct == pytest.approx(75.0, abs=0.5)
     assert result.balance_report.balance_loss_pct == pytest.approx(25.0, abs=0.5)
     assert result.balance_report.bottleneck_station_id == "ST-A"
+
+
+# ---------------------------------------------------------------------------
+# Sprint 5 — Precaution Auto-Binding tests (ddm-struct-0819.xlsx spec)
+# ---------------------------------------------------------------------------
+
+_SPEC_PRECAUTION_RULES = [
+    {"id": "prule-lcd-1", "trigger_type": "component", "trigger_value": "LCD",
+     "text": "擦拭LCD时需用手扶着LCD"},
+    {"id": "prule-lcd-2", "trigger_type": "component", "trigger_value": "LCD",
+     "text": "禁止用任何液体直接倒在LCD Panel上"},
+    {"id": "prule-elec-driver", "trigger_type": "tool", "trigger_value": "电动起子",
+     "text": "电动起子高度需距离机台 22~35cm"},
+]
+
+
+@pytest.mark.unit
+def test_precaution_rules_lcd_component_injects_both_texts():
+    """An action whose component contains 'LCD' must receive both LCD precautions."""
+    from ddm_v2.services.most_workspace_service import _apply_precaution_rules
+
+    action = {"component": "LCD Panel A", "tool": None, "precautions": []}
+    result = _apply_precaution_rules(action, _SPEC_PRECAUTION_RULES)
+
+    assert "擦拭LCD时需用手扶着LCD" in result
+    assert "禁止用任何液体直接倒在LCD Panel上" in result
+    assert len(result) == 2
+
+
+@pytest.mark.unit
+def test_precaution_rules_electric_screwdriver_injects_text():
+    """An action using '电动起子' as the tool must receive the screwdriver warning."""
+    from ddm_v2.services.most_workspace_service import _apply_precaution_rules
+
+    action = {"component": "Screw", "tool": "电动起子", "precautions": []}
+    result = _apply_precaution_rules(action, _SPEC_PRECAUTION_RULES)
+
+    assert "电动起子高度需距离机台 22~35cm" in result
+    # LCD rule must NOT fire for non-LCD component
+    assert "擦拭LCD时需用手扶着LCD" not in result
+
+
+@pytest.mark.unit
+def test_precaution_rules_are_idempotent_on_reapply():
+    """Re-running the rule engine on an action that already has the precaution text
+    must not produce duplicates."""
+    from ddm_v2.services.most_workspace_service import _apply_precaution_rules
+
+    action = {
+        "component": "LCD",
+        "tool": None,
+        "precautions": ["擦拭LCD时需用手扶着LCD"],
+    }
+    result = _apply_precaution_rules(action, _SPEC_PRECAUTION_RULES)
+
+    assert result.count("擦拭LCD时需用手扶着LCD") == 1
+
+
+@pytest.mark.unit
+def test_precaution_rules_non_triggering_action_returns_empty():
+    """An action with an unrelated component and tool must receive no precautions."""
+    from ddm_v2.services.most_workspace_service import _apply_precaution_rules
+
+    action = {"component": "DIMM", "tool": "Torque Driver", "precautions": []}
+    result = _apply_precaution_rules(action, _SPEC_PRECAUTION_RULES)
+
+    assert result == []
+
+
+@pytest.mark.unit
+def test_simulation_station_precautions_aggregated_from_lcd_action():
+    """When run_line_balance processes a station containing an LCD action, the
+    resulting StationResult.precautions must contain both LCD warning texts,
+    and each action dict in station.actions must carry the precautions."""
+    result = run_line_balance(
+        project_id="proj-lcd",
+        takt_time=10.0,
+        station_assignments=[
+            {"id": "ST-LCD", "name": "LCD Station", "employee_id": "emp-1", "sop_ids": ["sop-lcd"]},
+        ],
+        employees=[
+            {"id": "emp-1", "name": "Tech", "skill_level": "Expert", "efficiency_factor": 1.0,
+             "certifications": []},
+        ],
+        sop_versions=[
+            {
+                "id": "sop-lcd",
+                "project_id": "proj-lcd",
+                "actions": [
+                    {
+                        "id": "act-lcd",
+                        "description": "安裝 LCD 面板",
+                        "seconds": 2.5,
+                        "station_id": "ST-LCD",
+                        "component": "LCD",
+                        "tool": None,
+                        "object_category": "高單價物料",
+                        "glove_type": None,
+                        "is_ctq": True,
+                    },
+                ],
+            }
+        ],
+        glove_rules=[{"id": "glv-default", "object_category": "*", "action": "*", "glove_type": "General Glove"}],
+        ion_fan_bindings=[],
+        precaution_rules=_SPEC_PRECAUTION_RULES,
+    )
+
+    station = result.station_results[0]
+    assert "擦拭LCD时需用手扶着LCD" in station.precautions
+    assert "禁止用任何液体直接倒在LCD Panel上" in station.precautions
+
+    # The per-action dict inside station.actions must also carry precautions
+    action_dict = station.actions[0]
+    assert "擦拭LCD时需用手扶着LCD" in action_dict.get("precautions", [])
+
+
+@pytest.mark.unit
+def test_simulation_electric_screwdriver_precaution_in_station():
+    """When an action's tool is '电动起子', station precautions must contain
+    the screwdriver height warning."""
+    result = run_line_balance(
+        project_id="proj-driver",
+        takt_time=10.0,
+        station_assignments=[
+            {"id": "ST-D", "name": "Driver Station", "employee_id": "emp-1", "sop_ids": ["sop-d"]},
+        ],
+        employees=[
+            {"id": "emp-1", "name": "Tech", "skill_level": "Expert", "efficiency_factor": 1.0,
+             "certifications": []},
+        ],
+        sop_versions=[
+            {
+                "id": "sop-d",
+                "project_id": "proj-driver",
+                "actions": [
+                    {
+                        "id": "act-d1",
+                        "description": "鎖附螺絲",
+                        "seconds": 1.0,
+                        "station_id": "ST-D",
+                        "component": "Screw",
+                        "tool": "电动起子",
+                        "object_category": "Fastener",
+                        "glove_type": None,
+                        "is_ctq": False,
+                    },
+                ],
+            }
+        ],
+        glove_rules=[{"id": "glv-default", "object_category": "*", "action": "*", "glove_type": "General Glove"}],
+        ion_fan_bindings=[],
+        precaution_rules=_SPEC_PRECAUTION_RULES,
+    )
+
+    station = result.station_results[0]
+    assert "电动起子高度需距离机台 22~35cm" in station.precautions
+    assert "擦拭LCD时需用手扶着LCD" not in station.precautions
+
+
+@pytest.mark.unit
+def test_simulation_without_precaution_rules_returns_empty_precautions():
+    """Calling run_line_balance without precaution_rules must not raise and must
+    produce empty precaution lists — backward-compatible with existing callers."""
+    result = run_line_balance(
+        project_id="proj-compat",
+        takt_time=5.0,
+        station_assignments=[
+            {"id": "ST-1", "name": "S1", "employee_id": "emp-1", "sop_ids": ["sop-1"]},
+        ],
+        employees=[
+            {"id": "emp-1", "name": "Tech", "skill_level": "Expert", "efficiency_factor": 1.0},
+        ],
+        sop_versions=[
+            {
+                "id": "sop-1",
+                "project_id": "proj-compat",
+                "actions": [
+                    {"id": "a1", "description": "Do something", "seconds": 1.0,
+                     "station_id": "ST-1", "component": "LCD", "tool": "电动起子",
+                     "object_category": None, "glove_type": None, "is_ctq": False},
+                ],
+            }
+        ],
+        glove_rules=[],
+        ion_fan_bindings=[],
+        # precaution_rules intentionally omitted — tests default=None path
+    )
+
+    station = result.station_results[0]
+    assert station.precautions == []

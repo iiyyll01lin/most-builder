@@ -334,6 +334,12 @@ class SOPAction(BaseModel):
     is_simo: bool = False
     simo_group_id: str | None = None
     required_skill: str | None = None
+    # Auto-binding precautions injected by the rule engine (e.g. LCD handling, electric screwdriver).
+    # Also editable by engineers in the SOP action editor.
+    precautions: list[str] = Field(default_factory=list)
+    # Equipment dynamic parameters (e.g. air pressure / force for pressing tools).
+    # Keys: 'air_pressure_mpa', 'force_n_cm2'; values are operator-recorded measurements.
+    equipment_params: dict[str, str] | None = None
 
 
 class SOPVersion(BaseModel):
@@ -391,6 +397,8 @@ class StationResult(BaseModel):
     ion_fan_required: bool = False
     ion_fan_targets: list[str] = Field(default_factory=list)
     skill_alerts: list[str] = Field(default_factory=list)
+    # Aggregated per-station precaution texts derived from auto-binding rules.
+    precautions: list[str] = Field(default_factory=list)
 
 
 class BalanceReport(BaseModel):
