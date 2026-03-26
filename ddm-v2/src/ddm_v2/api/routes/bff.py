@@ -11,21 +11,10 @@ from copy import deepcopy
 from fastapi import APIRouter, Depends, HTTPException
 
 from ddm_v2.api.dependencies import get_current_user, get_store
-from ddm_v2.repositories.store import JsonStore
+from ddm_v2.repositories.postgres_store import PostgresStore
 from ddm_v2.services.level_service import build_level_entries, build_precedence_graph
 
 router = APIRouter(prefix="/api/v1/bff", tags=["bff"])
-
-
-def _find_workspace(store: JsonStore, project_id: str, sop_version_id: str | None) -> dict | None:
-    candidates = [
-        ws for ws in store.list_collection("most_workspaces") if ws.get("project_id") == project_id
-    ]
-    if sop_version_id:
-        for ws in candidates:
-            if ws.get("sop_version_id") == sop_version_id:
-                return ws
-    return candidates[-1] if candidates else None
 
 
 def _level_scope_key(project_id: str, sop_version_id: str | None) -> str:
@@ -33,10 +22,10 @@ def _level_scope_key(project_id: str, sop_version_id: str | None) -> str:
 
 
 @router.get("/dashboard/{project_id}")
-def dashboard(
+async def dashboard(
     project_id: str,
     sop_version_id: str | None = None,
-    store: JsonStore = Depends(get_store),
+    store: PostgresStore = Depends(get_store),
     _: dict = Depends(get_current_user),
 ) -> dict:
     """Aggregate endpoint for the MOST Workspace + Level System dashboard.
@@ -51,12 +40,12 @@ def dashboard(
     Returns a single JSON object the UI can use to paint the entire dashboard
     in one network round trip.
     """
-    project = store.find_by_id("projects", project_id)
+    project = await store.find_by_id("projects", project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
     # --- SOP versions (summary only — no full action list to keep payload lean) ---
-    all_versions = [v for v in store.list_collection("sop_versions") if v["project_id"] == project_id]
+    all_versions = [v for v in await store.list_collection("sop_versions") if v["project_id"] == project_id]
     sop_summaries = [
         {
             "id": v["id"],
@@ -84,7 +73,7 @@ def dashboard(
             sop_actions = list(target_version.get("actions", []))
 
     # --- MOST workspace ---
-    workspace = _find_workspace(store, project_id, resolved_sop_version_id)
+    workspace = await store.find_workspace(project_id, resolved_sop_version_id)
     workspace_payload = (
         deepcopy(workspace)
         if workspace
@@ -104,9 +93,9 @@ def dashboard(
 
     # --- Level system entries ---
     scope_key = _level_scope_key(project_id, resolved_sop_version_id)
-    existing_entries = store.state.get("level_entries", {}).get(scope_key)
+    existing_entries = await store.get_level_entries(scope_key)
     if existing_entries is None and sop_version_id is None:
-        existing_entries = store.state.get("level_entries", {}).get(project_id, [])
+        existing_entries = await store.get_level_entries(project_id)
     existing_entries = existing_entries or []
     level_entries = build_level_entries(project_id, sop_actions, existing_entries)
 

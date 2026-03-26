@@ -10,7 +10,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 
 from ddm_v2.api.dependencies import get_current_user, get_store, require_roles
-from ddm_v2.repositories.store import JsonStore
+from ddm_v2.repositories.postgres_store import PostgresStore
 from ddm_v2.schemas import (
     AuditAction,
     SOPCreateRequest,
@@ -30,8 +30,8 @@ ALLOWED_STATUS_TRANSITIONS: dict[str, set[str]] = {
 
 
 @router.get("/versions")
-def list_versions(project_id: str | None = None, store: JsonStore = Depends(get_store), user: dict = Depends(get_current_user)):
-    versions = list(store.list_collection("sop_versions"))
+async def list_versions(project_id: str | None = None, store: PostgresStore = Depends(get_store), user: dict = Depends(get_current_user)):
+    versions = list(await store.list_collection("sop_versions"))
     if project_id:
         versions = [version for version in versions if version["project_id"] == project_id]
     if user["role"] == UserRole.operator.value:
@@ -40,7 +40,7 @@ def list_versions(project_id: str | None = None, store: JsonStore = Depends(get_
 
 
 @router.post("/versions", status_code=201)
-def create_version(payload: SOPCreateRequest, store: JsonStore = Depends(get_store), user: dict = Depends(require_roles(UserRole.manager, UserRole.engineer))):
+async def create_version(payload: SOPCreateRequest, store: PostgresStore = Depends(get_store), user: dict = Depends(require_roles(UserRole.manager, UserRole.engineer))):
     version = {
         "id": store.new_id("sop"),
         "project_id": payload.project_id,
@@ -58,15 +58,14 @@ def create_version(payload: SOPCreateRequest, store: JsonStore = Depends(get_sto
         action_payload = action.model_dump()
         action_payload["id"] = action_payload.get("id") or store.new_id("act")
         version["actions"].append(action_payload)
-    store.list_collection("sop_versions").append(version)
-    store.save()
-    store.audit(user, AuditAction.create, "sop", version["id"], f"Created SOP {version['version_no']}", new_value=version)
+    version = await store.upsert_collection_item("sop_versions", version)
+    await store.audit(user, AuditAction.create, "sop", version["id"], f"Created SOP {version['version_no']}", new_value=version)
     return version
 
 
 @router.get("/versions/{sop_id}")
-def get_version(sop_id: str, store: JsonStore = Depends(get_store), user: dict = Depends(get_current_user)):
-    version = store.find_by_id("sop_versions", sop_id)
+async def get_version(sop_id: str, store: PostgresStore = Depends(get_store), user: dict = Depends(get_current_user)):
+    version = await store.find_by_id("sop_versions", sop_id)
     if version is None:
         raise HTTPException(status_code=404, detail="SOP version not found")
     if user["role"] == UserRole.operator.value and version["status"] != SOPStatus.published.value:
@@ -75,8 +74,8 @@ def get_version(sop_id: str, store: JsonStore = Depends(get_store), user: dict =
 
 
 @router.put("/versions/{sop_id}/status")
-def update_status(sop_id: str, payload: SOPUpdateStatusRequest, store: JsonStore = Depends(get_store), user: dict = Depends(get_current_user)):
-    version = store.find_by_id("sop_versions", sop_id)
+async def update_status(sop_id: str, payload: SOPUpdateStatusRequest, store: PostgresStore = Depends(get_store), user: dict = Depends(get_current_user)):
+    version = await store.find_by_id("sop_versions", sop_id)
     if version is None:
         raise HTTPException(status_code=404, detail="SOP version not found")
     previous = version["status"]
@@ -94,23 +93,25 @@ def update_status(sop_id: str, payload: SOPUpdateStatusRequest, store: JsonStore
     if payload.status == SOPStatus.published:
         version["published_by"] = user["id"]
         version["published_at"] = datetime.now(UTC).isoformat()
-    store.save()
-    action = AuditAction.review if payload.status == SOPStatus.reviewed else AuditAction.publish
-    store.audit(user, action, "sop", sop_id, f"Changed SOP status {previous} -> {payload.status.value}", old_value={"status": previous}, new_value={"status": payload.status.value})
+    version = await store.upsert_collection_item("sop_versions", version)
+    audit_action = AuditAction.review if payload.status == SOPStatus.reviewed else AuditAction.publish
+    await store.audit(user, audit_action, "sop", sop_id, f"Changed SOP status {previous} -> {payload.status.value}", old_value={"status": previous}, new_value={"status": payload.status.value})
     return version
 
 
 @router.put("/versions/{sop_id}/actions")
-def update_actions(sop_id: str, payload: list[dict], store: JsonStore = Depends(get_store), user: dict = Depends(require_roles(UserRole.manager, UserRole.engineer))):
-    version = store.find_by_id("sop_versions", sop_id)
+async def update_actions(sop_id: str, payload: list[dict], store: PostgresStore = Depends(get_store), user: dict = Depends(require_roles(UserRole.manager, UserRole.engineer))):
+    version = await store.find_by_id("sop_versions", sop_id)
     if version is None:
         raise HTTPException(status_code=404, detail="SOP version not found")
     if version["status"] != SOPStatus.draft.value:
         raise HTTPException(status_code=400, detail="Only Draft SOP can be modified")
-    version["actions"] = []
+    new_actions = []
     for action in payload:
         action["id"] = action.get("id") or store.new_id("act")
-        version["actions"].append(action)
-    store.save()
-    store.audit(user, AuditAction.update, "sop", sop_id, f"Updated {len(version['actions'])} SOP actions", new_value={"count": len(version['actions'])})
+        new_actions.append(action)
+    version["actions"] = new_actions
+    version = await store.upsert_collection_item("sop_versions", version)
+    await store.audit(user, AuditAction.update, "sop", sop_id, f"Updated {len(version['actions'])} SOP actions", new_value={"count": len(version['actions'])})
     return version
+

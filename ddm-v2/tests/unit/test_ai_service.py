@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-from ddm_v2.services.ai_service import (
-    _mock_llm_generate,
-    build_system_prompt,
-    generate_sop_actions,
-)
 from ddm_v2.services.ai_review_service import (
     _mock_llm_review,
     build_review_system_prompt,
     review_sop_sequence,
+)
+from ddm_v2.services.ai_service import (
+    _mock_llm_generate,
+    build_system_prompt,
+    generate_sop_actions,
 )
 from ddm_v2.services.most_workspace_service import _apply_precaution_rules
 

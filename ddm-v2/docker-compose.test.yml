@@ -1,6 +1,6 @@
 # ─── docker-compose.test.yml — Integrated E2E test stack ─────────────────────
 #
-# Spins up the backend and frontend on a shared bridge network.
+# Spins up PostgreSQL, the backend, and the frontend on a shared bridge network.
 # The frontend Nginx proxies /api/* and WebSocket traffic to the backend.
 # Playwright's globalSetup runs `docker compose -f docker-compose.test.yml up`
 # before the test suite and tears it down via globalTeardown.
@@ -12,17 +12,22 @@
 name: ddm-v2-e2e
 
 services:
-  # ── DB seed init container ───────────────────────────────────────────────────
-  # Copies runtime-db.json into the shared volume BEFORE the backend starts so
-  # the in-memory store loads real seed data on first boot.
-  db-init:
-    image: busybox:latest
-    volumes:
-      - ./data:/seed:ro
-      - e2e_data:/app/data
-    command: >
-      sh -c "cp /seed/e2e-seed.json /app/data/runtime-db.json &&
-             echo '[db-init] e2e-seed.json seeded OK'"
+  # ── PostgreSQL 15 ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: ddm-v2-postgres-test
+    environment:
+      POSTGRES_USER: ddm
+      POSTGRES_PASSWORD: ddm_secret
+      POSTGRES_DB: ddm_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ddm -d ddm_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - app_net
     restart: "no"
 
   # ── FastAPI backend ──────────────────────────────────────────────────────────
@@ -42,6 +47,9 @@ services:
     environment:
       DDM_ROOT_DIR: /app
       DDM_DATA_DIR: /app/data
+      DDM_DATABASE_URL: postgresql+asyncpg://ddm:ddm_secret@postgres:5432/ddm_test
+      # Retain legacy path so the JsonStore (still active during Phase 1-2)
+      # can bootstrap default seed data from seeds.py if the file is absent.
       DDM_DB_PATH: /app/data/runtime-db.json
       # Fixed secret key so JWT tokens are stable across restarts
       DDM_SECRET_KEY: e2e-test-secret-key-not-for-production
@@ -50,19 +58,17 @@ services:
       DDM_CORS_ALLOW_HEADERS: "Authorization,Content-Type"
       DDM_CORS_ALLOW_CREDENTIALS: "true"
     volumes:
-      # Bind-mount the existing runtime-db.json so tests run against real seed data.
-      # Use a named volume copy to prevent test mutations from corrupting the source.
       - e2e_data:/app/data
     healthcheck:
       test: ["CMD", "python", "-c",
              "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
       interval: 10s
       timeout: 5s
-      start_period: 25s
+      start_period: 30s
       retries: 6
     depends_on:
-      db-init:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
     networks:
       - app_net
     restart: "no"
@@ -90,10 +96,11 @@ services:
     restart: "no"
 
 volumes:
-  # Isolated volume seeded from the source data directory via an init container.
-  # The init step runs once per `docker compose up`.
+  # Named volume provides an isolated writable data directory for the backend.
+  # The backend will bootstrap default seed data via seeds.py on first start.
   e2e_data:
 
 networks:
   app_net:
     driver: bridge
+

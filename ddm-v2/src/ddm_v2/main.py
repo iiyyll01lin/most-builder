@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, status
@@ -17,7 +19,7 @@ from ddm_v2.api.routes.most import router as most_router
 from ddm_v2.api.routes.simulation import router as simulation_router
 from ddm_v2.api.routes.sop import router as sop_router
 from ddm_v2.api.routes.system import router as system_router
-from ddm_v2.repositories.store import JsonStore
+from ddm_v2.db.database import get_session_factory, init_db
 from ddm_v2.schemas import ErrorCode, ErrorDetail
 from ddm_v2.settings import Settings, get_settings
 
@@ -31,9 +33,63 @@ _HTTP_STATUS_TO_ERROR_CODE: dict[int, ErrorCode] = {
 }
 
 
-def create_app(db_path: Path | None = None, settings: Settings | None = None) -> FastAPI:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialise the async database engine, run migrations, and seed master data."""
+    db_url: str = app.state.database_url
+    init_db(db_url)
+    app.state.pg_session_factory = get_session_factory()
+
+    import ddm_v2.models.domain  # noqa: F401
+    from ddm_v2.db.database import _engine
+    from ddm_v2.models.domain import Base  # noqa: F401 — ensures Base.metadata is populated
+
+    if "sqlite" in db_url:
+        # Test mode: create tables directly without Alembic to keep tests fast
+        # and dependency-free.
+        async with _engine.begin() as conn:  # type: ignore[union-attr]
+            await conn.run_sync(Base.metadata.create_all)
+    else:
+        # Production / integration: run Alembic migrations idempotently so every
+        # startup ensures the schema is at head revision.
+        from pathlib import Path as _Path
+
+        import alembic.command
+        import alembic.config
+
+        alembic_cfg = alembic.config.Config(str(_Path(__file__).resolve().parents[3] / "alembic.ini"))
+        # Override the URL; Alembic env.py reads DDM_DATABASE_URL from os.environ
+        import os as _os
+        _os.environ.setdefault("DDM_DATABASE_URL", db_url)
+        await asyncio.to_thread(alembic.command.upgrade, alembic_cfg, "head")
+
+    # Seed master data on first boot (when the users table is empty).
+    from sqlalchemy import func, select
+
+    from ddm_v2.models.domain import UserRow
+    from ddm_v2.repositories.postgres_store import PostgresStore
+
+    async with app.state.pg_session_factory() as session:
+        count = (await session.execute(select(func.count(UserRow.username)))).scalar_one()
+        if count == 0:
+            store = PostgresStore(session)
+            await store._seed_from_defaults()
+            await session.commit()
+
+    yield
+
+    # Dispose the engine on shutdown to cleanly close all pool connections.
+    if _engine is not None:
+        await _engine.dispose()
+
+
+def create_app(
+    db_path: Path | None = None,
+    settings: Settings | None = None,
+    database_url: str | None = None,
+) -> FastAPI:
     app_settings = settings or get_settings()
-    app = FastAPI(title=app_settings.app_name, version=app_settings.app_version)
+    app = FastAPI(title=app_settings.app_name, version=app_settings.app_version, lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=app_settings.cors_allow_origins,
@@ -62,7 +118,8 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
         return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content=body.model_dump())
 
     app.state.settings = app_settings
-    app.state.store = JsonStore(db_path or app_settings.db_path)
+    # Store a custom database URL override (used in tests with sqlite+aiosqlite://)
+    app.state.database_url = database_url or app_settings.database_url
 
     app.include_router(ai_router)
     app.include_router(auth_router)
@@ -88,3 +145,4 @@ def create_app(db_path: Path | None = None, settings: Settings | None = None) ->
 
 
 app = create_app()
+

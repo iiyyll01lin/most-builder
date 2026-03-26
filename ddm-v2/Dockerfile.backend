@@ -40,7 +40,7 @@ COPY docker-wheels/ ./docker-wheels/
 
 RUN pip install --upgrade pip \
     && if ls ./docker-wheels/*.whl > /dev/null 2>&1; then \
-         pip install --find-links ./docker-wheels -e . ; \
+         pip install --no-index --find-links ./docker-wheels -e . ; \
        else \
          pip install -e . ; \
        fi \

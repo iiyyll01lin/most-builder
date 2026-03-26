@@ -43,6 +43,10 @@ class Settings:
     cors_allow_credentials: bool
     cors_allow_methods: list[str]
     cors_allow_headers: list[str]
+    # ── Phase 4: PostgreSQL connection URL ───────────────────────────────────
+    # Scheme must be ``postgresql+asyncpg://`` for production or
+    # ``sqlite+aiosqlite://`` for lightweight test runs.
+    database_url: str
 
 
 @lru_cache(maxsize=1)
@@ -65,6 +69,10 @@ def get_settings() -> Settings:
         cors_allow_credentials=_parse_bool(os.getenv("DDM_CORS_ALLOW_CREDENTIALS"), True),
         cors_allow_methods=_parse_csv(os.getenv("DDM_CORS_ALLOW_METHODS"), ["*"]),
         cors_allow_headers=_parse_csv(os.getenv("DDM_CORS_ALLOW_HEADERS"), ["*"]),
+        database_url=os.getenv(
+            "DDM_DATABASE_URL",
+            "postgresql+asyncpg://ddm:ddm_secret@localhost:5432/ddm",
+        ),
     )
 
 

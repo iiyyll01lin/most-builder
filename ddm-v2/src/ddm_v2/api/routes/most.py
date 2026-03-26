@@ -5,7 +5,7 @@ from copy import deepcopy
 from fastapi import APIRouter, Depends, HTTPException
 
 from ddm_v2.api.dependencies import get_current_user, get_store, require_roles
-from ddm_v2.repositories.store import JsonStore
+from ddm_v2.repositories.postgres_store import PostgresStore
 from ddm_v2.schemas import (
     AuditAction,
     GloveCheckRequest,
@@ -24,18 +24,9 @@ from ddm_v2.services.most_workspace_service import build_workspace_snapshot
 router = APIRouter(prefix="/api/v1", tags=["most"])
 
 
-def _ensure_project_exists(store: JsonStore, project_id: str) -> None:
-    if store.find_by_id("projects", project_id) is None:
+async def _ensure_project_exists(store: PostgresStore, project_id: str) -> None:
+    if await store.find_by_id("projects", project_id) is None:
         raise HTTPException(status_code=404, detail="Project not found")
-
-
-def _find_workspace(store: JsonStore, project_id: str, sop_version_id: str | None = None) -> dict | None:
-    candidates = [workspace for workspace in store.list_collection("most_workspaces") if workspace.get("project_id") == project_id]
-    if sop_version_id:
-        for workspace in candidates:
-            if workspace.get("sop_version_id") == sop_version_id:
-                return workspace
-    return candidates[-1] if candidates else None
 
 
 def _empty_workspace(project_id: str, sop_version_id: str | None = None) -> dict:
@@ -59,21 +50,21 @@ def calculate(payload: MOSTCalculateRequest, _: dict = Depends(get_current_user)
 
 
 @router.get("/most/workspaces/{project_id}")
-def get_workspace(project_id: str, sop_version_id: str | None = None, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    _ensure_project_exists(store, project_id)
-    workspace = _find_workspace(store, project_id, sop_version_id)
+async def get_workspace(project_id: str, sop_version_id: str | None = None, store: PostgresStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    await _ensure_project_exists(store, project_id)
+    workspace = await store.find_workspace(project_id, sop_version_id)
     return deepcopy(workspace) if workspace else _empty_workspace(project_id, sop_version_id)
 
 
 @router.put("/most/workspaces/{project_id}")
-def save_workspace(
+async def save_workspace(
     project_id: str,
     payload: MOSTWorkspaceSaveRequest,
-    store: JsonStore = Depends(get_store),
+    store: PostgresStore = Depends(get_store),
     user: dict = Depends(require_roles(UserRole.manager, UserRole.engineer)),
 ):
-    _ensure_project_exists(store, project_id)
-    existing = _find_workspace(store, project_id, payload.sop_version_id)
+    await _ensure_project_exists(store, project_id)
+    existing = await store.find_workspace(project_id, payload.sop_version_id)
     snapshot = build_workspace_snapshot(
         project_id=project_id,
         sop_version_id=payload.sop_version_id,
@@ -81,32 +72,29 @@ def save_workspace(
         raw_wi_components=payload.wi_components,
         selected_step_ids=payload.selected_step_ids,
         workspace_id=existing.get("id") if existing else store.new_id("mostws"),
-        glove_rules=store.list_collection("glove_rules"),
-        precaution_rules=store.list_collection("precaution_rules"),
+        glove_rules=await store.list_collection("glove_rules"),
+        precaution_rules=await store.list_collection("precaution_rules"),
     )
     snapshot["id"] = snapshot.get("id") or store.new_id("mostws")
-    if existing:
-        existing_index = store.list_collection("most_workspaces").index(existing)
-        store.list_collection("most_workspaces")[existing_index] = snapshot
-        action = AuditAction.update
-        description = f"Updated MOST workspace for project {project_id}"
-    else:
-        store.list_collection("most_workspaces").append(snapshot)
-        action = AuditAction.create
-        description = f"Created MOST workspace for project {project_id}"
-    store.save()
-    store.audit(user, action, "most-workspace", snapshot["id"], description, new_value={"project_id": project_id, "step_count": len(snapshot["steps"])})
+    audit_action = AuditAction.update if existing else AuditAction.create
+    description = (
+        f"Updated MOST workspace for project {project_id}"
+        if existing
+        else f"Created MOST workspace for project {project_id}"
+    )
+    snapshot = await store.upsert_collection_item("most_workspaces", snapshot)
+    await store.audit(user, audit_action, "most-workspace", snapshot["id"], description, new_value={"project_id": project_id, "step_count": len(snapshot.get("steps", []))})
     return snapshot
 
 
 @router.post("/most/workspaces/{project_id}/import")
-def import_workspace(
+async def import_workspace(
     project_id: str,
     payload: MOSTWorkspaceImportRequest,
-    store: JsonStore = Depends(get_store),
+    store: PostgresStore = Depends(get_store),
     user: dict = Depends(require_roles(UserRole.manager, UserRole.engineer)),
 ):
-    return save_workspace(
+    return await save_workspace(
         project_id,
         MOSTWorkspaceSaveRequest(
             sop_version_id=payload.sop_version_id,
@@ -120,14 +108,13 @@ def import_workspace(
 
 
 @router.get("/most/workspaces/{project_id}/export")
-def export_workspace(project_id: str, sop_version_id: str | None = None, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    _ensure_project_exists(store, project_id)
-    workspace = _find_workspace(store, project_id, sop_version_id)
+async def export_workspace(project_id: str, sop_version_id: str | None = None, store: PostgresStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    await _ensure_project_exists(store, project_id)
+    workspace = await store.find_workspace(project_id, sop_version_id)
     return deepcopy(workspace) if workspace else _empty_workspace(project_id, sop_version_id)
 
 
 def _glove_rule_specificity(rule: dict) -> int:
-    """Lower score = more specific; sorted ascending so specific rules match first."""
     score = 0
     if rule.get("object_category") == "*":
         score += 2
@@ -137,8 +124,8 @@ def _glove_rule_specificity(rule: dict) -> int:
 
 
 @router.post("/gloves/check", response_model=GloveCheckResponse)
-def glove_check(payload: GloveCheckRequest, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    rules = sorted(store.list_collection("glove_rules"), key=_glove_rule_specificity)
+async def glove_check(payload: GloveCheckRequest, store: PostgresStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    rules = sorted(await store.list_collection("glove_rules"), key=_glove_rule_specificity)
     matched = next(
         (
             rule
@@ -156,8 +143,8 @@ def glove_check(payload: GloveCheckRequest, store: JsonStore = Depends(get_store
 
 
 @router.post("/mi-naming/validate", response_model=MINamingValidationResponse)
-def validate_mi_naming(payload: MINamingValidationRequest, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    rules = sorted(store.list_collection("mi_naming_rules"), key=lambda r: r.get("position", 99))
+async def validate_mi_naming(payload: MINamingValidationRequest, store: PostgresStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    rules = sorted(await store.list_collection("mi_naming_rules"), key=lambda r: r.get("position", 99))
     errors = []
     parts = []
     for rule in rules:
@@ -167,7 +154,6 @@ def validate_mi_naming(payload: MINamingValidationRequest, store: JsonStore = De
             errors.append(f"{rule['label']} is required.")
         if value:
             parts.append(value)
-    # MI naming convention: segments joined by single '_'
     return MINamingValidationResponse(is_valid=not errors, errors=errors, suggested_name="_".join(parts) if parts else None)
 
 
@@ -190,3 +176,4 @@ def validate_level_system(payload: dict, _: dict = Depends(get_current_user)):
     tags = [node.get("tag", "") for node in payload.get("nodes", [])]
     errors = validate_level_tags(tags)
     return {"is_valid": not errors, "errors": errors}
+

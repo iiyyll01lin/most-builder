@@ -10,8 +10,10 @@ from ddm_v2.main import create_app
 
 @pytest.fixture
 def client(tmp_path):
-    db_path = tmp_path / "runtime-db.json"
-    app = create_app(db_path=db_path)
+    # Use a file-based SQLite per test so the async engine sees the same DB
+    # across the pool without the shared-memory cache URI complexity.
+    db_url = f"sqlite+aiosqlite:///{tmp_path}/test.db"
+    app = create_app(database_url=db_url)
     with TestClient(app) as test_client:
         yield test_client
 

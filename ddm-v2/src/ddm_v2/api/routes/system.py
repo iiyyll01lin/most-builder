@@ -10,7 +10,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends
 
 from ddm_v2.api.dependencies import get_current_user, get_store, require_roles
-from ddm_v2.repositories.store import JsonStore
+from ddm_v2.repositories.postgres_store import PostgresStore
 from ddm_v2.schemas import AuditAction, UserRole
 from ddm_v2.settings import get_settings
 
@@ -18,13 +18,13 @@ router = APIRouter(prefix="/api/v1", tags=["system"])
 
 
 @router.get("/projects")
-def projects(store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    return store.list_collection("projects")
+async def projects(store: PostgresStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    return await store.list_collection("projects")
 
 
 @router.get("/projects/{project_id}")
-def project_detail(project_id: str, store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    project = store.find_by_id("projects", project_id)
+async def project_detail(project_id: str, store: PostgresStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    project = await store.find_by_id("projects", project_id)
     if project is None:
         from fastapi import HTTPException
 
@@ -33,17 +33,17 @@ def project_detail(project_id: str, store: JsonStore = Depends(get_store), _: di
 
 
 @router.get("/audit/logs")
-def audit_logs(
+async def audit_logs(
     limit: int = 100,
     entity_type: str | None = None,
     page: int | None = None,
     size: int = 50,
-    store: JsonStore = Depends(get_store),
+    store: PostgresStore = Depends(get_store),
     user: dict = Depends(get_current_user),
 ):
     from fastapi.responses import JSONResponse
 
-    logs = list(store.list_collection("audit_logs"))
+    logs = list(await store.list_collection("audit_logs"))
     if user["role"] != UserRole.manager.value:
         logs = [entry for entry in logs if entry["user_id"] == user["id"]]
     if entity_type:
@@ -73,37 +73,36 @@ def health():
 
 
 @router.get("/db/status")
-def db_status(store: JsonStore = Depends(get_store), _: dict = Depends(get_current_user)):
-    db_path = store.db_path
-    exists = db_path.exists()
+async def db_status(store: PostgresStore = Depends(get_store), _: dict = Depends(get_current_user)):
+    counts = await store.get_collection_counts()
     return {
-        "persistent_file": str(db_path),
-        "file_exists": exists,
-        "file_size_bytes": db_path.stat().st_size if exists else 0,
-        "last_modified": datetime.fromtimestamp(db_path.stat().st_mtime, tz=UTC).isoformat() if exists else None,
-        "collections": {key: len(value) if isinstance(value, list) else len(value) for key, value in store.state.items() if isinstance(value, (list, dict))},
+        "persistent_file": "postgresql",
+        "file_exists": True,
+        "file_size_bytes": 0,
+        "last_modified": None,
+        "collections": counts,
     }
 
 
 @router.post("/db/save")
-def db_save(store: JsonStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
-    store.save()
-    return {"status": "success", "message": "Database saved", "path": str(store.db_path)}
+async def db_save(store: PostgresStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
+    await store.save()
+    return {"status": "success", "message": "Database saved (PostgreSQL — no-op)", "path": "postgresql"}
 
 
 @router.post("/db/load")
-def db_load(store: JsonStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
-    store.load()
-    return {"status": "success", "message": "Database loaded", "path": str(store.db_path)}
+async def db_load(store: PostgresStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
+    await store.load()
+    return {"status": "success", "message": "Database loaded (PostgreSQL — no-op)", "path": "postgresql"}
 
 
 @router.get("/db/export")
-def db_export(store: JsonStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
-    return store.state
+async def db_export(store: PostgresStore = Depends(get_store), _: dict = Depends(require_roles(UserRole.manager))):
+    return await store.export_state()
 
 
 @router.delete("/db/reset")
-def db_reset(store: JsonStore = Depends(get_store), user: dict = Depends(require_roles(UserRole.manager))):
-    store.reset()
-    store.audit(user, AuditAction.reset, "database", "runtime", "Reset database to defaults")
+async def db_reset(store: PostgresStore = Depends(get_store), user: dict = Depends(require_roles(UserRole.manager))):
+    await store.reset()
+    await store.audit(user, AuditAction.reset, "database", "runtime", "Reset database to defaults")
     return {"status": "success", "message": "Database reset to defaults"}
