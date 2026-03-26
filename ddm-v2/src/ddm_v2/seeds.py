@@ -65,9 +65,27 @@ DEFAULT_STATE = {
         {"id": "loc-fixture", "name": "Fixture"},
     ],
     "object_library": [
+        # Fasteners
         {"id": "obj-screw", "name": "Screw", "category": "Fastener", "sub_category": "M3", "glove_type": "Finger Cot", "ctq": True},
-        {"id": "obj-board", "name": "Motherboard", "category": "PCB", "sub_category": "Main", "glove_type": "ESD Glove", "ctq": True},
+        # PCB / Motherboard family
+        {"id": "obj-board", "name": "Motherboard", "category": "PCB", "sub_category": "Main", "glove_type": "兩只半指手套", "ctq": True},
+        {"id": "obj-mlb", "name": "MLB", "category": "主板/MLB", "sub_category": "MLB", "glove_type": "兩只半指手套", "ctq": True},
+        {"id": "obj-server-mb", "name": "Server Motherboard", "category": "主板/MLB", "sub_category": "MLB", "glove_type": "兩只半指手套", "ctq": True},
+        # Memory
+        {"id": "obj-dimm", "name": "DIMM", "category": "記憶體", "sub_category": "DIMM", "glove_type": "兩只半指手套", "ctq": True},
+        {"id": "obj-fake-dimm", "name": "Dummy DIMM", "category": "假件", "sub_category": "DIMM", "glove_type": "兩只半指手套", "ctq": False},
+        # Processors
+        {"id": "obj-cpu", "name": "CPU", "category": "處理器", "sub_category": "CPU", "glove_type": "兩只半指手套", "ctq": True, "required_skill": "FATP07"},
+        # Storage
+        {"id": "obj-ssd", "name": "SSD", "category": "儲存裝置", "sub_category": "SSD", "glove_type": "兩只半指手套", "ctq": True},
+        # GPU / expansion cards
+        {"id": "obj-gpu-riser", "name": "GPU Riser", "category": "擴充卡", "sub_category": "GPU", "glove_type": "兩只半指手套", "ctq": True},
+        # Cables
+        {"id": "obj-cable", "name": "Cable", "category": "線材", "sub_category": "Cable", "glove_type": "左手半指+右手指套", "ctq": False},
+        # Labels
         {"id": "obj-label", "name": "Label", "category": "Label", "sub_category": "RFID", "glove_type": "General Glove", "ctq": False},
+        # Chassis
+        {"id": "obj-chassis", "name": "Chassis", "category": "機殼", "sub_category": "Chassis", "glove_type": "一般作業手套", "ctq": False},
     ],
     "from_locations": [
         {"id": "from-bin", "name": "Component Bin"},
@@ -86,18 +104,53 @@ DEFAULT_STATE = {
         {"id": "pre-torque", "process": "Assembly", "category": "Tooling", "description": "Verify torque tool calibration before shift start."},
     ],
     "glove_rules": [
-        {"id": "glv-pcb", "object_category": "PCB", "action": "*", "glove_type": "ESD Glove"},
+        # High-value ESD-sensitive boards and processors → two half-finger gloves
+        {"id": "glv-mlb", "object_category": "主板/MLB", "action": "*", "glove_type": "兩只半指手套"},
+        {"id": "glv-dimm", "object_category": "記憶體", "action": "*", "glove_type": "兩只半指手套"},
+        {"id": "glv-cpu", "object_category": "處理器", "action": "*", "glove_type": "兩只半指手套"},
+        {"id": "glv-gpu", "object_category": "擴充卡", "action": "*", "glove_type": "兩只半指手套"},
+        {"id": "glv-storage", "object_category": "儲存裝置", "action": "*", "glove_type": "兩只半指手套"},
+        {"id": "glv-high-value", "object_category": "高單價物料", "action": "*", "glove_type": "兩只半指手套"},
+        {"id": "glv-backplane", "object_category": "背板", "action": "*", "glove_type": "兩只半指手套"},
+        # PCB general category (legacy/English names)
+        {"id": "glv-pcb", "object_category": "PCB", "action": "*", "glove_type": "兩只半指手套"},
+        # Cable routing → left half-finger + right finger cot
+        {"id": "glv-cable", "object_category": "線材", "action": "*", "glove_type": "左手半指+右手指套"},
+        # Fastener by specific action
         {"id": "glv-fastener", "object_category": "Fastener", "action": "Fasten", "glove_type": "Finger Cot"},
+        # Packaging and structural parts → general gloves
+        {"id": "glv-package", "object_category": "包材", "action": "*", "glove_type": "一般作業手套"},
+        {"id": "glv-baffle", "object_category": "擋板", "action": "*", "glove_type": "一般作業手套"},
+        {"id": "glv-chassis", "object_category": "機殼", "action": "*", "glove_type": "一般作業手套"},
+        # Wildcard fallback
         {"id": "glv-default", "object_category": "*", "action": "*", "glove_type": "General Glove"},
     ],
     "ion_fan_bindings": [
-        {"id": "ion-pcb", "object_category": "PCB", "object_name": "Motherboard", "note": "ESD critical handling"},
+        # LCD installation: mandates ion fan (ESD + fingerprint contamination risk)
+        {"id": "ion-lcd", "object_category": "高單價物料", "object_name": "LCD", "note": "操作LCD時必須開啟離子風扇，避免ESD與指紋污染"},
+        # MLB / Motherboard
+        {"id": "ion-mlb", "object_category": "主板/MLB", "object_name": "MLB", "note": "操作MLB時必須開啟離子風扇"},
+        {"id": "ion-mb", "object_category": "主板/MLB", "object_name": "Motherboard", "note": "ESD critical handling"},
+        # DIMM / RAM
+        {"id": "ion-dimm", "object_category": "記憶體", "object_name": "DIMM", "note": "操作DIMM記憶體時必須開啟離子風扇"},
+        # CPU / Processor
+        {"id": "ion-cpu", "object_category": "處理器", "object_name": "CPU", "note": "操作CPU時必須開啟離子風扇"},
+        # GPU / Riser cards
+        {"id": "ion-gpu", "object_category": "擴充卡", "object_name": "GPU Riser", "note": "操作GPU Riser時必須開啟離子風扇"},
+        # PCB general category fallback
+        {"id": "ion-pcb", "object_category": "PCB", "object_name": "PCB", "note": "ESD critical handling"},
     ],
+    # MI Naming Convention: [Model5]_[Status]_[PickType]_[Process]_[CFI]_[Line]_[Area]_[CT]
+    # Each field corresponds to one segment separated by '_'.
     "mi_naming_rules": [
-        {"id": "rule-project", "field": "project", "label": "Project", "required": True},
-        {"id": "rule-line", "field": "line", "label": "Line", "required": True},
-        {"id": "rule-station", "field": "station", "label": "Station", "required": True},
-        {"id": "rule-seconds", "field": "seconds", "label": "Seconds", "required": True},
+        {"id": "rule-model5", "field": "model5", "label": "Model5", "required": True, "position": 1, "description": "5-digit model code (e.g. HDL50)"},
+        {"id": "rule-status", "field": "status", "label": "Status", "required": True, "position": 2, "description": "SOP status (e.g. ASSY, PACK)"},
+        {"id": "rule-pick-type", "field": "pick_type", "label": "PickType", "required": True, "position": 3, "description": "Pick type (e.g. FPT, MPT)"},
+        {"id": "rule-process", "field": "process", "label": "Process", "required": True, "position": 4, "description": "Process type (ASSY/PACK/SUB/SMT)"},
+        {"id": "rule-cfi", "field": "cfi", "label": "CFI", "required": False, "position": 5, "description": "CFI code (optional)"},
+        {"id": "rule-line", "field": "line", "label": "Line", "required": True, "position": 6, "description": "Production line identifier"},
+        {"id": "rule-area", "field": "area", "label": "Area", "required": True, "position": 7, "description": "Area or station zone"},
+        {"id": "rule-ct", "field": "ct", "label": "CT", "required": True, "position": 8, "description": "Cycle time in seconds"},
     ],
     "level_system_templates": [
         {"id": "lvl-1", "level": 1, "description": "Main sequencing between material families."},
@@ -108,9 +161,9 @@ DEFAULT_STATE = {
         {"id": "guide-cub", "title": "Cub", "body": "Use Cub for indivisible action blocks that must stay in the same station."},
     ],
     "employees": [
-        {"id": "emp-eva", "name": "Eva", "station_type": "Assembly", "skill_level": SkillLevel.expert.value, "efficiency_factor": 1.2},
-        {"id": "emp-noah", "name": "Noah", "station_type": "Assembly", "skill_level": SkillLevel.proficient.value, "efficiency_factor": 1.0},
-        {"id": "emp-li", "name": "Li", "station_type": "Assembly", "skill_level": SkillLevel.novice.value, "efficiency_factor": 0.8},
+        {"id": "emp-eva", "name": "Eva", "station_type": "Assembly", "skill_level": SkillLevel.expert.value, "efficiency_factor": 1.2, "certifications": ["FATP01", "FATP03", "FATP07", "FATP08"]},
+        {"id": "emp-noah", "name": "Noah", "station_type": "Assembly", "skill_level": SkillLevel.proficient.value, "efficiency_factor": 1.0, "certifications": ["FATP01", "FATP03"]},
+        {"id": "emp-li", "name": "Li", "station_type": "Assembly", "skill_level": SkillLevel.novice.value, "efficiency_factor": 0.8, "certifications": []},
     ],
     "stations": [
         {"id": "ST-3-1a", "name": "第3-1站 (DIMM)", "employee_id": "emp-eva"},

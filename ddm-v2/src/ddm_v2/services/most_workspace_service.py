@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+
 try:
     from datetime import UTC
 except ImportError:
@@ -126,7 +127,10 @@ def build_workspace_snapshot(
         step["glove_type"] = _resolve_glove_from_rules(
             step.get("object_category"),
             step.get("primary_action"),
-            step.get("glove_type") or metric.glove_type,
+            # Only pass the user-explicitly-set glove as explicit_glove.
+            # The infer_glove fallback ("General Glove") must NOT short-circuit
+            # the master-data rule lookup; pass it only when the user set it.
+            step.get("glove_type") or None,
             glove_rules or [],
         ) if glove_rules else (step.get("glove_type") or metric.glove_type)
         step["component"] = step.get("component") or metric.object
