@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { updateSopActions } from '@/api/sop'
@@ -59,7 +59,7 @@ function ActionRow({
       </td>
       <td className="px-3 py-2 text-xs text-gray-400">{index + 1}</td>
       <td className="px-3 py-2 text-xs font-mono text-cyan-300">{action.seq_type}</td>
-      <td className="px-3 py-2 text-sm text-gray-100 max-w-[280px] truncate">
+      <td className="px-3 py-2 text-sm text-gray-100 max-w-[280px] break-words whitespace-normal">
         {action.description}
       </td>
       <td className="px-3 py-2 text-xs text-amber-300 text-right">
@@ -72,7 +72,12 @@ function ActionRow({
             <span className="rounded bg-red-900/60 px-1.5 py-0.5 text-[10px] text-red-300">CTQ</span>
           )}
           {action.is_simo && (
-            <span className="rounded bg-purple-900/60 px-1.5 py-0.5 text-[10px] text-purple-300">SIMO</span>
+            <span
+              className="rounded bg-purple-900/60 px-1.5 py-0.5 text-[10px] text-purple-300 cursor-help"
+              title="SIMO (Simultaneous Motion) — time is parallelized; only the longest hand counts toward CT"
+            >
+              SIMO
+            </span>
           )}
           {action.glove_type && (
             <span className="rounded bg-blue-900/60 px-1.5 py-0.5 text-[10px] text-blue-300">
@@ -171,6 +176,21 @@ export function SopActionEditor({ sop, queryKey }: SopActionEditorProps) {
     setLocalActions(sop.actions)
     setIsDirty(false)
   }, [sop.actions])
+
+  // ── Data-loss prevention: warn before tab/window close with unsaved changes ─
+  // This is a safety net for the "forgot to click Save" scenario described in
+  // the Excel spec.  The browser's native confirm dialog is the only mechanism
+  // that works reliably across all browsers for beforeunload events.
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      // returnValue is required for legacy browser compatibility
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   return (
     <section className="space-y-3 rounded-2xl border border-gray-700 bg-gray-900/50 p-5">

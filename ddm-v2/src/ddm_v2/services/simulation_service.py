@@ -210,6 +210,8 @@ def run_line_balance(
                         "description": action["description"],
                         "seconds": action["seconds"],
                         "station_id": action.get("station_id"),
+                        "is_simo": bool(action.get("is_simo")),
+                        "simo_group_id": action.get("simo_group_id"),
                     }
                     for action in station_actions
                 ],

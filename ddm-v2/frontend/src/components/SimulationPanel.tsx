@@ -35,6 +35,7 @@ function StationCard({
   const pct = Math.min(100, (station.actual_time / taktTime) * 100)
   const hasSkillAlerts = (station.skill_alerts?.length ?? 0) > 0
   const is1p2m = (station.machine_count ?? 1) > 1
+  const [showActions, setShowActions] = useState(false)
 
   return (
     <div
@@ -48,8 +49,9 @@ function StationCard({
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-2 flex-wrap">
-        <div>
-          <p className="text-sm font-semibold text-gray-100">{station.name}</p>
+        <div className="min-w-0 flex-1">
+          {/* break-words: prevents long station descriptions from overflowing the card (Yamazumi 山積圖 fix) */}
+          <p className="text-sm font-semibold text-gray-100 break-words whitespace-normal">{station.name}</p>
           <p className="text-xs text-gray-400">{station.operator} · {station.skill_level}</p>
         </div>
         <div className="flex flex-wrap gap-1">
@@ -147,6 +149,39 @@ function StationCard({
           {station.skill_alerts!.map((alert, i) => (
             <p key={i} className="text-[10px] text-red-300 leading-tight">⚠ {alert}</p>
           ))}
+        </div>
+      )}
+
+      {/* Yamazumi action list — collapsible, text wrapping enabled */}
+      {station.actions.length > 0 && (
+        <div>
+          <button
+            onClick={() => setShowActions((v) => !v)}
+            className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            <span>{showActions ? '▼' : '▶'}</span>
+            <span>{showActions ? 'Hide' : 'Show'} {station.actions.length} action{station.actions.length !== 1 ? 's' : ''}</span>
+          </button>
+          {showActions && (
+            <ol className="mt-1.5 space-y-0.5">
+              {(station.actions as Array<{ id: string; description: string; seconds: number; is_simo?: boolean; simo_group_id?: string | null }>).map((a, idx) => (
+                <li key={a.id ?? idx} className="flex items-start gap-1.5 text-[10px] text-gray-400">
+                  <span className="shrink-0 text-gray-600">{idx + 1}.</span>
+                  {/* break-words + whitespace-normal prevents Yamazumi text overflow */}
+                  <span className="break-words whitespace-normal min-w-0 flex-1">{a.description}</span>
+                  <span className="shrink-0 text-gray-600">{a.seconds.toFixed(2)}s</span>
+                  {a.is_simo && (
+                    <span
+                      className="shrink-0 rounded bg-purple-900/60 px-1 py-0.5 text-[9px] text-purple-300 cursor-help"
+                      title="SIMO — time parallelized; only bottleneck hand counted"
+                    >
+                      SIMO
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       )}
     </div>
