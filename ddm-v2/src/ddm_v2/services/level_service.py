@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json as _json
 from collections import defaultdict
 
 
@@ -122,7 +124,38 @@ def _detect_precedence_cycles(edges: list[dict]) -> list[str]:
     return []
 
 
+# ── Precedence-graph cache ────────────────────────────────────────────────────
+# Building the graph from level entries involves Kahn's topological sort
+# (O(V + E)).  For read-heavy dashboards where the SOP changes infrequently,
+# we avoid recomputing an identical graph on every request by caching the
+# result keyed on a SHA-256 fingerprint of the serialised entry list.
+# The cache is capped at _GRAPH_CACHE_MAX entries (LRU eviction via dict
+# insertion order, Python 3.7+).
+
+_GRAPH_CACHE_MAX = 128
+_graph_cache: dict[str, dict] = {}
+
+
+def _entries_fingerprint(level_entries: list[dict]) -> str:
+    """Stable SHA-256 fingerprint of ``level_entries`` for cache invalidation.
+
+    Uses ``json.dumps(..., sort_keys=True, default=str)`` so that any Python
+    type (datetime, Enum, etc.) survives serialisation.  Only the first 16 hex
+    characters are kept — collision probability is negligible for the small
+    number of distinct SOP graphs a server will see in production.
+    """
+    payload = _json.dumps(level_entries, sort_keys=True, default=str).encode()
+    return hashlib.sha256(payload).hexdigest()[:16]
+
+
 def build_precedence_graph(level_entries: list[dict]) -> dict:
+    # Return a cached result when the entries haven't changed.  A shallow copy
+    # is returned so that route handlers can safely add top-level keys such as
+    # ``project_id`` and ``sop_version_id`` without corrupting the cached entry.
+    fp = _entries_fingerprint(level_entries)
+    if fp in _graph_cache:
+        return {**_graph_cache[fp]}
+
     nodes = []
     precedence_edges = []
     cub_groups: dict[str, list[str]] = defaultdict(list)
@@ -163,7 +196,7 @@ def build_precedence_graph(level_entries: list[dict]) -> dict:
         precedence_edges.append({"from": left[1], "to": right[1], "type": "main"})
 
     cycle_errors = _detect_precedence_cycles(precedence_edges)
-    return {
+    result = {
         "nodes": nodes,
         "precedence_edges": precedence_edges,
         "cub_groups": dict(cub_groups),
@@ -172,3 +205,8 @@ def build_precedence_graph(level_entries: list[dict]) -> dict:
         "total_effective_ct": round(sum(node["effective_ct"] for node in nodes), 2),
         "cycle_errors": cycle_errors,
     }
+    # Evict oldest entry when the cache is full (insertion-order LRU).
+    if len(_graph_cache) >= _GRAPH_CACHE_MAX:
+        _graph_cache.pop(next(iter(_graph_cache)))
+    _graph_cache[fp] = result
+    return {**result}

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Callable
 from copy import deepcopy
 
-from ddm_v2.schemas import LineBalanceResponse, SkillLevel, StationResult
+from ddm_v2.schemas import BalanceReport, LineBalanceResponse, SkillLevel, StationResult
 
 
 def check_skill_certification(
@@ -39,24 +40,27 @@ def check_skill_certification(
 
 
 def _simo_adjusted_standard_time(actions: list[dict]) -> float:
-    """Compute SIMO-adjusted station standard time.
+    """Compute SIMO-adjusted station standard time — O(n) single-pass algorithm.
 
     Actions that share a ``simo_group_id`` and are marked ``is_simo`` are
-    treated as simultaneous: only the bottleneck (max seconds) action in each
-    group is counted.  Actions without a simo_group_id contribute normally.
-    This prevents overcounting when both left-hand and right-hand operations
-    are executed in parallel on the same station.
+    grouped by their ID in a single pass using a ``defaultdict(list)``.  For
+    each group, only the bottleneck (max seconds) action is counted towards the
+    station total — this is the SIMO rule: parallel left/right-hand motions
+    take as long as the slower hand, not the sum of both.
+    Actions without a ``simo_group_id`` contribute their full duration normally.
     """
-    simo_groups: dict[str, float] = {}
+    # Single-pass grouping: O(n) — no nested loops.
+    simo_groups: defaultdict[str, list[float]] = defaultdict(list)
     non_simo_total = 0.0
     for action in actions:
         simo_gid = action.get("simo_group_id")
         if action.get("is_simo") and simo_gid:
-            seconds = float(action.get("seconds", 0))
-            simo_groups[simo_gid] = max(simo_groups.get(simo_gid, 0.0), seconds)
+            simo_groups[simo_gid].append(float(action.get("seconds", 0)))
         else:
             non_simo_total += float(action.get("seconds", 0))
-    return non_simo_total + sum(simo_groups.values())
+    # For each SIMO group take only the bottleneck (max) hand time.
+    simo_total = sum(max(times) for times in simo_groups.values())
+    return non_simo_total + simo_total
 
 
 def run_line_balance(
@@ -225,6 +229,18 @@ def run_line_balance(
         balance_rate = round(total_actual_time / (cycle_time * station_count), 2)
     bottleneck_station = max(station_results, key=lambda s: s.machine_effective_time if s.machine_effective_time is not None else s.actual_time).id if station_results else "N/A"
     uph = int(3600 / cycle_time) if cycle_time else 0
+
+    # Line Balance Efficiency KPIs (IE/PE summary).
+    # Efficiency = ΣCT / (n × CT_max) × 100  — same as balance_rate expressed as %.
+    # Loss = 100 - Efficiency; a loss > 15% signals redistribution opportunity.
+    balance_efficiency_pct = round(balance_rate * 100, 1)
+    balance_loss_pct = round(100.0 - balance_efficiency_pct, 1)
+    balance_report = BalanceReport(
+        balance_efficiency_pct=balance_efficiency_pct,
+        balance_loss_pct=balance_loss_pct,
+        bottleneck_station_id=bottleneck_station,
+    )
+
     _emit(95, "Finalizing results")
     return LineBalanceResponse(
         bottleneck_station=bottleneck_station,
@@ -233,5 +249,6 @@ def run_line_balance(
         balance_rate=balance_rate,
         alerts=alerts,
         station_results=station_results,
+        balance_report=balance_report,
     )
 
