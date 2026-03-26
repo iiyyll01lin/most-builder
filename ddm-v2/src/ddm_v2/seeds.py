@@ -176,7 +176,16 @@ DEFAULT_STATE = {
             "project_id": "proj-atlas",
             "version_no": "V1.0",
             "status": SOPStatus.draft.value,
-            "actions": [],
+            "actions": [
+                # 7 representative GENERAL actions — used by SOP Editor E2E tests
+                {"id": "act-seed-1", "seq_type": "GENERAL", "description": "伸手 抓取螺絲", "tmu": 3, "seconds": 0.11, "params": {}, "station_id": "ST-3-1a", "is_ctq": False, "frequency": 1, "is_simo": False, "component": None, "tool": None, "image_url": None, "glove_type": None, "object_category": None},
+                {"id": "act-seed-2", "seq_type": "GENERAL", "description": "鎖附 螺絲", "tmu": 8, "seconds": 0.29, "params": {}, "station_id": "ST-3-1a", "is_ctq": False, "frequency": 1, "is_simo": False, "component": None, "tool": None, "image_url": None, "glove_type": None, "object_category": None},
+                {"id": "act-seed-3", "seq_type": "GENERAL", "description": "移動 並放置", "tmu": 5, "seconds": 0.18, "params": {}, "station_id": "ST-3-1b", "is_ctq": False, "frequency": 1, "is_simo": False, "component": None, "tool": None, "image_url": None, "glove_type": None, "object_category": None},
+                {"id": "act-seed-4", "seq_type": "GENERAL", "description": "拿取 主板", "tmu": 10, "seconds": 0.36, "params": {}, "station_id": "ST-4-1", "is_ctq": True, "frequency": 1, "is_simo": False, "component": None, "tool": None, "image_url": None, "glove_type": "兩只半指手套", "object_category": "MLB"},
+                {"id": "act-seed-5", "seq_type": "GENERAL", "description": "安裝 DIMM", "tmu": 12, "seconds": 0.43, "params": {}, "station_id": "ST-3-1a", "is_ctq": True, "frequency": 1, "is_simo": False, "component": None, "tool": None, "image_url": None, "glove_type": "兩只半指手套", "object_category": "DIMM"},
+                {"id": "act-seed-6", "seq_type": "CONTROLLED", "description": "確認 螺絲力矩", "tmu": 6, "seconds": 0.22, "params": {}, "station_id": "ST-3-1a", "is_ctq": True, "frequency": 1, "is_simo": False, "component": None, "tool": None, "image_url": None, "glove_type": None, "object_category": None},
+                {"id": "act-seed-7", "seq_type": "GENERAL", "description": "放置 組件至托盤", "tmu": 4, "seconds": 0.14, "params": {}, "station_id": "ST-3-1b", "is_ctq": False, "frequency": 1, "is_simo": False, "component": None, "tool": None, "image_url": None, "glove_type": None, "object_category": None},
+            ],
             "created_by": "usr-eng-1",
             "created_at": "2026-03-13T00:00:00+00:00",
             "reviewed_by": None,

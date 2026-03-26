@@ -21,8 +21,8 @@ services:
       - ./data:/seed:ro
       - e2e_data:/app/data
     command: >
-      sh -c "cp /seed/runtime-db.json /app/data/runtime-db.json &&
-             echo '[db-init] runtime-db.json seeded OK'"
+      sh -c "cp /seed/e2e-seed.json /app/data/runtime-db.json &&
+             echo '[db-init] e2e-seed.json seeded OK'"
     restart: "no"
 
   # ── FastAPI backend ──────────────────────────────────────────────────────────
