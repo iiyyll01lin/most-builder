@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from ddm_v2.api.routes.ai import router as ai_router
 from ddm_v2.api.routes.auth import router as auth_router
 from ddm_v2.api.routes.bff import router as bff_router
+from ddm_v2.api.routes.bi import router as bi_router
 from ddm_v2.api.routes.level import router as level_router
 from ddm_v2.api.routes.master import router as master_router
 from ddm_v2.api.routes.most import router as most_router
@@ -152,6 +153,7 @@ def create_app(
     app.include_router(ai_router)
     app.include_router(auth_router)
     app.include_router(bff_router)
+    app.include_router(bi_router)
     app.include_router(master_router)
     app.include_router(most_router)
     app.include_router(level_router)

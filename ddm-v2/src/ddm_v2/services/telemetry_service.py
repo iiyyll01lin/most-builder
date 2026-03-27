@@ -18,7 +18,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+# Python 3.11+ exposes datetime.UTC; use timezone.utc for 3.10 compatibility.
+UTC = timezone.utc
 
 try:
     import aiomqtt

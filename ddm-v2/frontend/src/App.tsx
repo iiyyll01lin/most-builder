@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from '@/store/authStore'
 import { LoginPage } from '@/pages/LoginPage'
 import { ProjectDashboard } from '@/pages/ProjectDashboard'
+import { FactoryManagerDashboard } from '@/pages/FactoryManagerDashboard'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,11 +43,14 @@ function ProjectSelector({ onSelect }: { onSelect: (id: string) => void }) {
   )
 }
 
+type ActiveView = 'project' | 'bi'
+
 function AppShell() {
   const token = useAuthStore((s) => s.token)
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const user = useAuthStore((s) => s.user)
   const [projectId, setProjectId] = useState<string | null>(null)
+  const [activeView, setActiveView] = useState<ActiveView>('project')
 
   if (!token) return <LoginPage />
   if (!projectId) return <ProjectSelector onSelect={setProjectId} />
@@ -63,9 +67,29 @@ function AppShell() {
             ← Projects
           </button>
           <span className="text-gray-700">|</span>
-          <span className="text-sm font-semibold text-cyan-400">
-            DDM IE/PE Console
-          </span>
+          <span className="text-sm font-semibold text-cyan-400">DDM IE/PE Console</span>
+          <span className="text-gray-700">|</span>
+          {/* View switcher */}
+          <button
+            onClick={() => setActiveView('project')}
+            className={`text-xs px-2 py-0.5 rounded transition-colors ${
+              activeView === 'project'
+                ? 'bg-cyan-800/50 text-cyan-300'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            SOP Workspace
+          </button>
+          <button
+            onClick={() => setActiveView('bi')}
+            className={`text-xs px-2 py-0.5 rounded transition-colors ${
+              activeView === 'bi'
+                ? 'bg-cyan-800/50 text-cyan-300'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Factory Manager AI
+          </button>
         </div>
         <button
           onClick={clearAuth}
@@ -76,7 +100,8 @@ function AppShell() {
       </nav>
 
       <main>
-        <ProjectDashboard projectId={projectId} />
+        {activeView === 'project' && <ProjectDashboard projectId={projectId} />}
+        {activeView === 'bi' && <FactoryManagerDashboard />}
       </main>
     </div>
   )
