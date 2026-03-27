@@ -26,6 +26,7 @@ WORKDIR /app
 RUN useradd --create-home --shell /usr/sbin/nologin appuser
 
 COPY pyproject.toml README.md ./
+COPY alembic ./alembic
 COPY src ./src
 
 RUN pip install --upgrade pip \
