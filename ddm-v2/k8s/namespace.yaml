@@ -1,0 +1,14 @@
+# ─── DDM-V2 Kubernetes Namespace ─────────────────────────────────────────────
+#
+# All DDM-V2 resources live in the `ddm-v2` namespace to isolate them from
+# other workloads on the cluster.  Apply this first before any other manifests.
+#
+# Usage:
+#   kubectl apply -f k8s/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ddm-v2
+  labels:
+    app.kubernetes.io/part-of: ddm-v2
+    app.kubernetes.io/managed-by: kubectl

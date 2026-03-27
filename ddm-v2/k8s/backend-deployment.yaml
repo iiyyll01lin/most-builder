@@ -1,0 +1,132 @@
+# ─── DDM-V2 Backend Deployment + Service ─────────────────────────────────────
+#
+# FastAPI application served by Uvicorn.
+# Horizontally scalable — all state lives in PostgreSQL and Redis, so any
+# number of replicas can run concurrently behind the Kubernetes Service.
+#
+# Readiness probe: only routes traffic when /api/v1/health returns 200.
+# Liveness probe:  restarts the pod if the app becomes unresponsive.
+#
+# Rolling update strategy ensures zero-downtime deployments.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: ddm-v2
+spec:
+  selector:
+    app.kubernetes.io/name: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: backend
+    app.kubernetes.io/part-of: ddm-v2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0          # Zero-downtime rolling update
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: backend
+        app.kubernetes.io/part-of: ddm-v2
+    spec:
+      terminationGracePeriodSeconds: 30
+
+      # Run as the non-root appuser defined in Dockerfile.backend
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+
+      containers:
+        - name: backend
+          # Replace with your registry path, e.g.:
+          #   123456789.dkr.ecr.us-east-1.amazonaws.com/ddm-v2-backend:202603-rc1
+          image: ddm-v2-backend:202603-rc1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+
+          envFrom:
+            - configMapRef:
+                name: ddm-v2-config
+
+          env:
+            - name: DDM_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ddm-v2-secrets
+                  key: DATABASE_URL
+            - name: DDM_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ddm-v2-secrets
+                  key: SECRET_KEY
+
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+
+          # Only send traffic to pods that are ready
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+            successThreshold: 1
+
+          # Restart the pod if the health endpoint stops responding
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          # Give the app a chance to drain in-flight requests
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 5"]
+
+          volumeMounts:
+            - name: app-data
+              mountPath: /app/data
+
+      volumes:
+        - name: app-data
+          # Use an emptyDir for ephemeral scratch data.
+          # For true persistence (e.g. uploaded videos), replace with a PVC
+          # backed by a shared file system (EFS on AWS, Filestore on GCP).
+          emptyDir: {}

@@ -1,0 +1,131 @@
+# ─── Eclipse Mosquitto MQTT Broker ────────────────────────────────────────────
+#
+# Mosquitto provides the IoT telemetry MQTT broker (Phase 7).
+# A single replica is deployed with:
+#   • A ConfigMap holding the mosquitto.conf (inline).
+#   • A PVC for the /mosquitto/data persistence directory so queued messages
+#     and retained topics survive pod restarts.
+#
+# For HA MQTT brokering at scale, consider replacing this with HiveMQ, EMQX,
+# or Vernemq which support true clustering.  Mosquitto requires external
+# clustering plugins (mosquitto-plugin-cluster) for multi-replica setups.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mosquitto-config
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/part-of: ddm-v2
+data:
+  mosquitto.conf: |
+    listener 1883
+    allow_anonymous true
+
+    persistence true
+    persistence_location /mosquitto/data/
+
+    log_dest stdout
+    log_type error
+    log_type warning
+    log_type notice
+    log_type information
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mosquitto-data
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/part-of: ddm-v2
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: gp2    # AWS EKS: gp2 / gp3.  GKE: standard-rwo
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mosquitto
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/part-of: ddm-v2
+spec:
+  selector:
+    app.kubernetes.io/name: mosquitto
+  ports:
+    - name: mqtt
+      port: 1883
+      targetPort: 1883
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mosquitto
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/part-of: ddm-v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mosquitto
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mosquitto
+        app.kubernetes.io/part-of: ddm-v2
+    spec:
+      containers:
+        - name: mosquitto
+          image: eclipse-mosquitto:2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 1883
+              name: mqtt
+
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "32Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+
+          readinessProbe:
+            tcpSocket:
+              port: 1883
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 5
+
+          livenessProbe:
+            tcpSocket:
+              port: 1883
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          volumeMounts:
+            - name: mosquitto-config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+              readOnly: true
+            - name: mosquitto-data
+              mountPath: /mosquitto/data
+
+      volumes:
+        - name: mosquitto-config
+          configMap:
+            name: mosquitto-config
+        - name: mosquitto-data
+          persistentVolumeClaim:
+            claimName: mosquitto-data

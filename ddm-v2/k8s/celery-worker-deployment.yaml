@@ -1,0 +1,105 @@
+# ─── Celery Worker Deployment ─────────────────────────────────────────────────
+#
+# Uses the same backend image but overrides CMD with the Celery worker command.
+# Scale replicas independently of the FastAPI backend to handle burst CV workloads.
+#
+# No readiness probe is needed — Celery workers are not HTTP servers.
+# A liveness probe exec-checks that the worker process is alive.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: celery-worker
+    app.kubernetes.io/part-of: ddm-v2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: celery-worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: celery-worker
+        app.kubernetes.io/part-of: ddm-v2
+    spec:
+      terminationGracePeriodSeconds: 60   # Let running tasks finish
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+
+      containers:
+        - name: celery-worker
+          # Same image as the backend — just a different entrypoint
+          image: ddm-v2-backend:202603-rc1
+          imagePullPolicy: IfNotPresent
+
+          # Override the default uvicorn CMD with the Celery worker command
+          command:
+            - celery
+            - -A
+            - ddm_v2.core.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency=2
+
+          envFrom:
+            - configMapRef:
+                name: ddm-v2-config
+
+          env:
+            - name: DDM_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ddm-v2-secrets
+                  key: DATABASE_URL
+            - name: DDM_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ddm-v2-secrets
+                  key: SECRET_KEY
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"   # MediaPipe / OpenCV pipelines are memory-hungry
+
+          # Celery workers expose no HTTP port; use a process-level check
+          livenessProbe:
+            exec:
+              command:
+                - celery
+                - -A
+                - ddm_v2.core.celery_app
+                - inspect
+                - ping
+                - -t
+                - "5"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: app-data
+              mountPath: /app/data
+
+      volumes:
+        - name: app-data
+          # For shared video frame storage between backend and workers,
+          # replace emptyDir with a shared PVC (EFS/NFS).
+          emptyDir: {}

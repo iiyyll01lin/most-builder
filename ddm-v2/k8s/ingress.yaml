@@ -1,0 +1,80 @@
+# ─── Kubernetes Ingress — DDM-V2 ─────────────────────────────────────────────
+#
+# Routes external HTTPS traffic to the frontend and backend services.
+#
+# Routing rules:
+#   /api/*        → backend:8000   (REST API + WebSocket upgrades)
+#   /*            → frontend:80    (Vite SPA served by Nginx)
+#
+# WebSocket note:
+#   The nginx.ingress.kubernetes.io/proxy-read-timeout and
+#   proxy-send-timeout annotations are set high for long-lived WS connections
+#   used by the simulation engine.  The Nginx ingress controller automatically
+#   forwards the `Upgrade` header when it detects a WebSocket handshake.
+#
+# TLS:
+#   Replace `ddm.example.com` with your real domain name.
+#   cert-manager with Let's Encrypt is recommended for automatic certificate
+#   provisioning (https://cert-manager.io/docs/).
+#
+# Prerequisites:
+#   - Install the Nginx Ingress Controller:
+#       kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+#   - Install cert-manager (optional, for TLS):
+#       kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ddm-v2-ingress
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: ddm-v2-ingress
+    app.kubernetes.io/part-of: ddm-v2
+  annotations:
+    # Use the Nginx ingress controller
+    kubernetes.io/ingress.class: "nginx"
+
+    # Increase body size for SOP action list uploads (mirrors nginx.conf client_max_body_size)
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+    # Long timeouts for WebSocket connections used by the simulation engine
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "86400"
+
+    # Enable WebSocket upgrade passthrough
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+
+    # TLS certificate — configure cert-manager ClusterIssuer before enabling
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+spec:
+  # Uncomment and configure once cert-manager is deployed
+  # tls:
+  #   - hosts:
+  #       - ddm.example.com
+  #     secretName: ddm-v2-tls
+
+  rules:
+    - host: ddm.example.com
+      http:
+        paths:
+          # API and WebSocket traffic → backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8000
+
+          # Everything else → frontend SPA
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

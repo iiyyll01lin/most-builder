@@ -1,0 +1,25 @@
+# ─── DDM-V2 Application ConfigMap ────────────────────────────────────────────
+#
+# Non-sensitive configuration injected as environment variables into the
+# backend and celery-worker Deployments.
+#
+# Sensitive values (DATABASE_URL, SECRET_KEY) live in the Secret object
+# defined in secrets.yaml — never put them here.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ddm-v2-config
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/part-of: ddm-v2
+data:
+  DDM_ROOT_DIR: "/app"
+  DDM_DATA_DIR: "/app/data"
+  DDM_MQTT_BROKER_HOST: "mosquitto"
+  DDM_MQTT_BROKER_PORT: "1883"
+  DDM_CORS_ALLOW_ORIGINS: "https://ddm.example.com"
+  DDM_CORS_ALLOW_METHODS: "GET,POST,PUT,DELETE"
+  DDM_CORS_ALLOW_HEADERS: "Authorization,Content-Type"
+  DDM_CORS_ALLOW_CREDENTIALS: "true"
+  DDM_CELERY_BROKER_URL: "redis://redis:6379/0"
+  DDM_CELERY_RESULT_BACKEND: "redis://redis:6379/1"

@@ -1,0 +1,103 @@
+# ─── Redis 7 Deployment + Service ────────────────────────────────────────────
+#
+# Redis is used as the Celery message broker and result backend.
+# A single replica with a standard RWO PVC for AOF/RDB snapshots is sufficient
+# for this workload.  For HA, replace with Redis Sentinel or Redis Cluster
+# (Bitnami Helm chart recommended).
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: ddm-v2
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: gp2    # AWS EKS: gp2 / gp3.  GKE: standard-rwo
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: ddm-v2
+spec:
+  selector:
+    app.kubernetes.io/name: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: ddm-v2
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/part-of: ddm-v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/part-of: ddm-v2
+    spec:
+      securityContext:
+        fsGroup: 999
+
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 6379
+              name: redis
+
+          # Enable AOF persistence so broker state survives pod restarts
+          command: ["redis-server", "--appendonly", "yes", "--dir", "/data"]
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 10
+
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-data
