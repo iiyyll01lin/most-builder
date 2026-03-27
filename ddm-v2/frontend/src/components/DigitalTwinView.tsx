@@ -1,5 +1,6 @@
 /**
  * DigitalTwinView — Phase 2: 3D Line-Balance Spatial Visualization
+ *                   Phase 7: Real-Time IoT Telemetry Active Digital Twin
  *
  * Component tree:
  *   <DigitalTwinView>                 — DOM wrapper, KPI overlay, legend
@@ -16,13 +17,36 @@
  * State strategy:
  *   - hoveredId (string | null) — local useState inside <Scene>, propagated to nodes
  *   - result / taktTime          — pure props from SimulationPanel (no Zustand changes)
+ *
+ * Phase 7 — zero-re-render telemetry:
+ *   - useTelemetry() opens WS once; emits to telemetryBus (module-level pub/sub)
+ *   - WorkstationNode useEffect subscribes to bus.  On event → writes flashRef
+ *     (plain object mutation, invisible to React)
+ *   - useFrame reads flashRef every tick, drives mat.emissive imperatively
+ *   - React reconciler is never invoked on a telemetry ping
  */
 
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Html, OrbitControls } from '@react-three/drei'
-import { useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import * as THREE from 'three'
 import type { LineBalanceResponse, StationResult } from '@/api/types'
+import { useTelemetry, telemetryBus } from '@/hooks/useTelemetry'
+import type { TelemetryStatus } from '@/hooks/useTelemetry'
+
+// ─── Flash colour constants (Phase 7) ────────────────────────────────────────
+
+/** Duration of the emissive flash animation in milliseconds */
+const FLASH_DURATION_MS = 500
+
+/** Event type → emissive flash colour */
+const FLASH_COLORS: Record<string, string> = {
+  fasten_ok: '#22c55e',
+  fasten_timeout: '#ef4444',
+  error: '#ef4444',
+  warning: '#f59e0b',
+}
+const FLASH_COLOR_DEFAULT = '#a78bfa'
 
 // ─── Layout & palette constants ───────────────────────────────────────────────
 
@@ -217,10 +241,41 @@ function WorkstationNode({
   const barH = ctToHeight(station.actual_time, taktTime)
   const is1p2m = (station.machine_count ?? 1) > 1
 
-  // Emissive pulse for bottleneck; subtle glow for hover; flat for normal
+  // ── Phase 7: Flash state ref (mutated by WS event, read by useFrame) ──────
+  // Shape: { startMs: number; color: THREE.Color } | null
+  // React never sees this — it's a plain object mutation.
+  const flashRef = useRef<{ startMs: number; color: THREE.Color } | null>(null)
+
+  useEffect(() => {
+    // Subscribe to telemetry events for this station.
+    const unsub = telemetryBus.subscribe(station.id, (event) => {
+      const hex = FLASH_COLORS[event.event_type] ?? FLASH_COLOR_DEFAULT
+      flashRef.current = { startMs: Date.now(), color: new THREE.Color(hex) }
+    })
+    return unsub
+  }, [station.id])
+
+  // Emissive pulse for bottleneck; telemetry flash; subtle glow for hover
   useFrame(() => {
     if (!barRef.current) return
     const mat = barRef.current.material as THREE.MeshStandardMaterial
+
+    // ── Phase 7: telemetry flash (highest priority) ───────────────────────
+    const flash = flashRef.current
+    if (flash !== null) {
+      const t = (Date.now() - flash.startMs) / FLASH_DURATION_MS  // 0 → 1
+      if (t < 1) {
+        // Ease-out: peak intensity at t=0, fade to 0 at t=1
+        const intensity = (1 - t) * 2.5
+        mat.emissive.copy(flash.color)
+        mat.emissiveIntensity = intensity
+        return
+      }
+      // Flash expired — clear so we fall through to base behaviour
+      flashRef.current = null
+    }
+
+    // ── Base behaviour (bottleneck pulse / hover / idle) ──────────────────
     if (isBottleneck) {
       mat.emissiveIntensity = 0.28 + 0.28 * Math.sin(Date.now() * 0.004)
     } else if (isHovered) {
@@ -481,6 +536,37 @@ function Scene({ result, taktTime }: { result: LineBalanceResponse; taktTime: nu
   )
 }
 
+// ─── Telemetry Status Chip (Phase 7) ─────────────────────────────────────────
+
+const _STATUS_STYLE: Record<string, { dot: string; label: string }> = {
+  connected:    { dot: '#22c55e', label: 'IoT Live' },
+  connecting:   { dot: '#f59e0b', label: 'IoT Connecting…' },
+  disconnected: { dot: '#ef4444', label: 'IoT Offline' },
+  disabled:     { dot: '#475569', label: 'IoT Disabled' },
+}
+
+function TelemetryStatusChip({ status }: { status: string }) {
+  const style = _STATUS_STYLE[status] ?? _STATUS_STYLE.disabled
+  return (
+    <div
+      className="absolute top-3 right-3 flex items-center gap-1.5 rounded border border-gray-700/70 bg-gray-900/85 px-2.5 py-1 backdrop-blur-sm pointer-events-none z-10"
+      style={{ fontSize: 10, fontFamily: 'monospace' }}
+    >
+      <span
+        style={{
+          display: 'inline-block',
+          width: 7,
+          height: 7,
+          borderRadius: '50%',
+          background: style.dot,
+          boxShadow: status === 'connected' ? `0 0 5px ${style.dot}` : 'none',
+        }}
+      />
+      <span style={{ color: '#94a3b8' }}>{style.label}</span>
+    </div>
+  )
+}
+
 // ─── KPI Overlay (DOM, absolute-positioned over the Canvas) ──────────────────
 
 function KpiOverlay({
@@ -536,6 +622,9 @@ export interface DigitalTwinViewProps {
 export function DigitalTwinView({ result, taktTime }: DigitalTwinViewProps) {
   const stationCount = result.station_results.length
 
+  // Phase 7: open telemetry WebSocket once at top of tree; status for UI chip
+  const telemetryStatus: TelemetryStatus = useTelemetry()
+
   if (stationCount === 0) {
     return (
       <div className="flex items-center justify-center h-40 text-gray-500 text-sm">
@@ -554,6 +643,9 @@ export function DigitalTwinView({ result, taktTime }: DigitalTwinViewProps) {
       {/* DOM KPI chips overlay */}
       <KpiOverlay result={result} taktTime={taktTime} />
 
+      {/* Phase 7: IoT telemetry connection status chip */}
+      <TelemetryStatusChip status={telemetryStatus} />
+
       {/* Legend */}
       <div className="absolute bottom-8 right-3 pointer-events-none flex flex-col gap-1 z-10">
         {[
@@ -561,6 +653,8 @@ export function DigitalTwinView({ result, taktTime }: DigitalTwinViewProps) {
           { color: '#f59e0b', label: 'Bottleneck' },
           { color: '#ef4444', label: 'Overloaded' },
           { color: '#f97316', label: '1P2M machine' },
+          { color: '#22c55e', label: '⚡ IoT ok flash' },
+          { color: '#ef4444', label: '⚡ IoT error flash' },
         ].map(({ color, label }) => (
           <div
             key={label}

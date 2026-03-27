@@ -42,6 +42,22 @@ services:
     networks:
       - app_net
     restart: "no"
+  # ── Eclipse Mosquitto MQTT Broker (Phase 7: IoT Telemetry) ──────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: ddm-v2-mosquitto-test
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "127.0.0.1", "-t", "$$SYS/#", "-C", "1", "-i", "hc", "-W", "3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - app_net
+    restart: "no"
+
   # ── FastAPI backend ──────────────────────────────────────────────────────────
   backend:
     build:
@@ -71,6 +87,8 @@ services:
       DDM_CORS_ALLOW_CREDENTIALS: "true"
       DDM_CELERY_BROKER_URL: redis://redis:6379/0
       DDM_CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DDM_MQTT_BROKER_HOST: mosquitto
+      DDM_MQTT_BROKER_PORT: 1883
     volumes:
       - e2e_data:/app/data
     healthcheck:
@@ -84,6 +102,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      mosquitto:
         condition: service_healthy
     networks:
       - app_net

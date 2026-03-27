@@ -25,7 +25,9 @@ dependencies = [
     "celery[redis]>=5.4,<6.0",
     "redis>=5.0,<6.0",
     "mediapipe>=0.10,<1.0",
-    "opencv-python-headless>=4.9,<5.0"
+    "opencv-python-headless>=4.9,<5.0",
+    # ── Phase 7: IoT telemetry ──────────────────────────────────────────────
+    "aiomqtt>=2.0,<3.0"
 ]
 
 [project.optional-dependencies]

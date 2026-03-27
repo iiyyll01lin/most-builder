@@ -19,6 +19,8 @@ from ddm_v2.api.routes.most import router as most_router
 from ddm_v2.api.routes.simulation import router as simulation_router
 from ddm_v2.api.routes.sop import router as sop_router
 from ddm_v2.api.routes.system import router as system_router
+from ddm_v2.api.routes.telemetry import router as telemetry_router
+from ddm_v2.api.routes.video import router as video_router
 from ddm_v2.db.database import get_session_factory, init_db
 from ddm_v2.schemas import ErrorCode, ErrorDetail
 from ddm_v2.settings import Settings, get_settings
@@ -81,7 +83,28 @@ async def lifespan(app: FastAPI):
             await store._seed_from_defaults()
             await session.commit()
 
+    # ── Phase 7: Start MQTT telemetry listener ───────────────────────────────
+    from ddm_v2.services.telemetry_service import run_mqtt_listener
+
+    _mqtt_settings = app.state.settings
+    app.state.mqtt_task = asyncio.create_task(
+        run_mqtt_listener(
+            broker_host=_mqtt_settings.mqtt_broker_host,
+            broker_port=_mqtt_settings.mqtt_broker_port,
+        ),
+        name="mqtt-listener",
+    )
+
     yield
+
+    # ── Phase 7: Stop MQTT listener ────────────────────────────────────────────
+    mqtt_task: asyncio.Task | None = getattr(app.state, "mqtt_task", None)
+    if mqtt_task is not None and not mqtt_task.done():
+        mqtt_task.cancel()
+        try:
+            await mqtt_task
+        except asyncio.CancelledError:
+            pass
 
     # Dispose the engine on shutdown to cleanly close all pool connections.
     if _engine is not None:
@@ -135,6 +158,8 @@ def create_app(
     app.include_router(sop_router)
     app.include_router(simulation_router)
     app.include_router(system_router)
+    app.include_router(telemetry_router)
+    app.include_router(video_router)
 
     app.mount("/static", StaticFiles(directory=app_settings.static_dir), name="static")
 

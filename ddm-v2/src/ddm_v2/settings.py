@@ -53,6 +53,9 @@ class Settings:
     video_upload_dir: Path    # ── Phase 6: Celery / Redis task queue ─────────────────────────────────────
     celery_broker_url: str
     celery_result_backend: str
+    # ── Phase 7: MQTT IoT telemetry broker ──────────────────────────────────
+    mqtt_broker_host: str
+    mqtt_broker_port: int
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
@@ -84,6 +87,8 @@ def get_settings() -> Settings:
         ),
         celery_broker_url=os.getenv("DDM_CELERY_BROKER_URL", "redis://localhost:6379/0"),
         celery_result_backend=os.getenv("DDM_CELERY_RESULT_BACKEND", "redis://localhost:6379/1"),
+        mqtt_broker_host=os.getenv("DDM_MQTT_BROKER_HOST", "localhost"),
+        mqtt_broker_port=int(os.getenv("DDM_MQTT_BROKER_PORT", "1883")),
     )
 
 
