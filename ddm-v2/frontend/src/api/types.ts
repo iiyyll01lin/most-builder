@@ -72,6 +72,53 @@ export interface SOPAction {
   precautions?: string[]
   /** Equipment dynamic parameters for pressing tools: air_pressure_mpa, force_n_cm2 */
   equipment_params?: Record<string, string> | null
+  /** Video-linked segment timestamps (seconds from video start) — written by VisionService */
+  video_timestamp_start?: number | null
+  video_timestamp_end?: number | null
+}
+
+// ─── Video Upload ─────────────────────────────────────────────────────────────
+
+export type VideoUploadStatus = 'pending' | 'processing' | 'ready' | 'failed' | 'analyzed'
+
+export interface VideoUpload {
+  id: string
+  sop_version_id: string
+  project_id: string
+  original_filename: string
+  file_size: number
+  duration_seconds: number | null
+  width: number | null
+  height: number | null
+  fps: number | null
+  status: VideoUploadStatus
+  uploaded_by: string | null
+  uploaded_at: string
+  error_message: string | null
+}
+
+export interface VisionDetectedAction {
+  seq_type: string
+  description: string
+  tmu: number
+  seconds: number
+  video_timestamp_start: number
+  video_timestamp_end: number
+  component?: string
+  tool?: string
+  is_ctq: boolean
+  is_simo: boolean
+  frequency: number
+  precautions?: string[]
+  params?: Record<string, unknown>
+}
+
+export interface VisionAnalysisResponse {
+  upload_id: string
+  sop_version_id: string
+  actions_detected: VisionDetectedAction[]
+  actions_appended_count: number
+  video_duration_seconds: number
 }
 
 export interface SOPVersion {

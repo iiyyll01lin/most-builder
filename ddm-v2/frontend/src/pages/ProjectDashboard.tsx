@@ -7,6 +7,7 @@ import { PrecedenceGraphViewer } from '@/components/PrecedenceGraphViewer'
 import { SimulationPanel } from '@/components/SimulationPanel'
 import { SopActionEditor } from '@/components/SopActionEditor'
 import { MIGenerator } from '@/components/MIGenerator'
+import { VideoSopWorkspace } from '@/pages/VideoSopWorkspace'
 import type { SOPVersionSummary } from '@/api/types'
 import { useAuthStore } from '@/store/authStore'
 
@@ -71,6 +72,7 @@ interface ProjectDashboardProps {
 
 export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   const [selectedSopId, setSelectedSopId] = useState<string | undefined>()
+  const [showVideoWorkspace, setShowVideoWorkspace] = useState(false)
   const user = useAuthStore((s) => s.user)
 
   const { data, isLoading, isError, error } = useQuery({
@@ -94,6 +96,11 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
     staleTime: 30_000,
   })
 
+  // Reset video workspace when the selected SOP version changes
+  if (showVideoWorkspace && activeSopVersion == null) {
+    setShowVideoWorkspace(false)
+  }
+
   if (isLoading) return <DashboardSkeleton />
 
   if (isError) {
@@ -110,6 +117,17 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
   if (!data) return null
 
   const { project, sop_versions, workspace, level_system, precedence_graph } = data
+
+  // ── Video workspace overlay ────────────────────────────────────────────────
+  if (showVideoWorkspace && activeSopVersion) {
+    return (
+      <VideoSopWorkspace
+        sop={activeSopVersion}
+        sopQueryKey={sopQueryKey}
+        onClose={() => setShowVideoWorkspace(false)}
+      />
+    )
+  }
 
   return (
     <div className="min-h-screen space-y-6 p-6">
@@ -198,7 +216,19 @@ export function ProjectDashboard({ projectId }: ProjectDashboardProps) {
 
       {/* SOP Action Editor */}
       {activeSopVersion && activeSopVersion.actions.length > 0 && (
-        <SopActionEditor sop={activeSopVersion} queryKey={sopQueryKey} />
+        <div className="space-y-2">
+          {/* Video workspace toggle */}
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowVideoWorkspace(true)}
+              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-gray-300 hover:border-cyan-700/60 hover:text-cyan-300 transition-colors"
+              title="Open synchronized Video · SOP workspace"
+            >
+              📹 Video Workspace
+            </button>
+          </div>
+          <SopActionEditor sop={activeSopVersion} queryKey={sopQueryKey} />
+        </div>
       )}
 
       {/* MI Naming Generator */}

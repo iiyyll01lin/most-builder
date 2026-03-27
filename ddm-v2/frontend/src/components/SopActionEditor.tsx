@@ -14,6 +14,12 @@ function reorder<T>(list: T[], from: number, to: number): T[] {
   return result
 }
 
+function formatTimecode(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
 // ─── Equipment-parameter tools (spec §工作表5) ────────────────────────────────
 // These tools require the operator to record air pressure & force before use.
 const EQUIPMENT_PARAM_TOOLS = new Set(['TP压合治具', '开机键锁附治具'])
@@ -42,6 +48,10 @@ interface ActionRowProps {
   onDragOver: (i: number) => void
   onDrop: () => void
   onEquipmentParamsChange: (index: number, params: Record<string, string> | null) => void
+  /** Highlight this row because the video playhead is within its segment */
+  isActive?: boolean
+  /** Called when the user clicks the seek button on this row */
+  onSeekRequest?: (seconds: number) => void
 }
 
 function ActionRow({
@@ -53,11 +63,20 @@ function ActionRow({
   onDragOver,
   onDrop,
   onEquipmentParamsChange,
+  isActive = false,
+  onSeekRequest,
 }: ActionRowProps) {
   const [showParams, setShowParams] = useState(false)
   const hasPrecautions = (action.precautions?.length ?? 0) > 0
   const needsEquipParams =
     canEdit && action.tool != null && EQUIPMENT_PARAM_TOOLS.has(action.tool)
+
+  // Timing delta: (actual video segment duration) - (expected action seconds)
+  const hasVideoTimestamps =
+    action.video_timestamp_start != null && action.video_timestamp_end != null
+  const timingDelta = hasVideoTimestamps
+    ? (action.video_timestamp_end! - action.video_timestamp_start!) - action.seconds
+    : null
 
   const currentParams: Record<string, string> = action.equipment_params ?? {}
 
@@ -78,7 +97,11 @@ function ActionRow({
         onDrop={onDrop}
         className={[
           'group cursor-grab border-b border-gray-700/50 transition-colors active:cursor-grabbing',
-          isDragging ? 'opacity-50 bg-cyan-900/20' : 'hover:bg-gray-800/50',
+          isDragging
+            ? 'opacity-50 bg-cyan-900/20'
+            : isActive
+              ? 'bg-cyan-950/40 border-l-2 border-cyan-500'
+              : 'hover:bg-gray-800/50',
         ].join(' ')}
       >
         <td className="w-8 px-2 py-2 text-center text-xs text-gray-600 group-hover:text-gray-400 select-none">
@@ -106,10 +129,34 @@ function ActionRow({
         </td>
         <td className="px-3 py-2 text-xs text-amber-300 text-right">
           {action.seconds.toFixed(2)}s
+          {/* Timing delta badge — shown when video segment duration diverges from SOP value */}
+          {timingDelta !== null && Math.abs(timingDelta) >= 0.2 && (
+            <div
+              className={`text-[10px] font-mono leading-tight ${
+                timingDelta > 0 ? 'text-orange-400' : 'text-red-400'
+              }`}
+              title={`Video segment is ${Math.abs(timingDelta).toFixed(2)}s ${timingDelta > 0 ? 'longer' : 'shorter'} than the SOP action time`}
+            >
+              {timingDelta > 0 ? '+' : ''}{timingDelta.toFixed(1)}s Δ
+            </div>
+          )}
         </td>
         <td className="px-3 py-2 text-xs text-gray-400 text-center">{action.tmu}</td>
         <td className="px-3 py-2">
           <div className="flex flex-wrap gap-1">
+            {/* Seek-to-video button — visible only in video-sync mode */}
+            {onSeekRequest != null && action.video_timestamp_start != null && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSeekRequest(action.video_timestamp_start!)
+                }}
+                className="rounded bg-cyan-900/50 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:bg-cyan-700/60 transition-colors"
+                title={`Seek video to ${formatTimecode(action.video_timestamp_start)}`}
+              >
+                ▶ {formatTimecode(action.video_timestamp_start)}
+              </button>
+            )}
             {action.is_ctq && (
               <span className="rounded bg-red-900/60 px-1.5 py-0.5 text-[10px] text-red-300">CTQ</span>
             )}
@@ -191,9 +238,13 @@ interface SopActionEditorProps {
   sop: SOPVersion
   /** React Query cache key — used to write optimistic updates */
   queryKey: unknown[]
+  /** ID of the SOP action whose video segment is currently playing */
+  activeActionId?: string | null
+  /** Called when the user clicks the seek button on a row */
+  onSeekRequest?: (seconds: number) => void
 }
 
-export function SopActionEditor({ sop, queryKey }: SopActionEditorProps) {
+export function SopActionEditor({ sop, queryKey, activeActionId, onSeekRequest }: SopActionEditorProps) {
   const queryClient = useQueryClient()
   const [localActions, setLocalActions] = useState<SOPAction[]>(sop.actions)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
@@ -399,6 +450,8 @@ export function SopActionEditor({ sop, queryKey }: SopActionEditorProps) {
                 index={i}
                 isDragging={dragIndex === i}
                 canEdit={canEdit}
+                isActive={activeActionId != null && action.id === activeActionId}
+                onSeekRequest={onSeekRequest}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
