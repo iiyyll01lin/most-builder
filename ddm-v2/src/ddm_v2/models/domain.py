@@ -141,8 +141,53 @@ class SopActionRow(Base):
     is_simo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     simo_group_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     required_skill: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Vision-engine anchor columns: ground-truth wall-clock seconds within the
+    # linked VideoUpload file.  NULL until a Vision analysis has been run.
+    video_timestamp_start: Mapped[float | None] = mapped_column(Float, nullable=True)
+    video_timestamp_end: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     sop_version: Mapped[SopVersionRow] = relationship("SopVersionRow", back_populates="sop_actions")
+
+
+# ────────────────────────────────────────────────────────────────────────────
+#  Video Uploads
+# ────────────────────────────────────────────────────────────────────────────
+
+
+class VideoUploadRow(Base):
+    """Stores metadata for a workstation video uploaded against a SOP version.
+
+    A ``SopVersion`` can have many associated uploads (different operators,
+    camera angles, etc.).  The Vision Engine annotates each ``SopAction`` with
+    ``video_timestamp_start`` / ``video_timestamp_end`` that refer to seconds
+    within this file.
+    """
+
+    __tablename__ = "video_uploads"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    sop_version_id: Mapped[str] = mapped_column(
+        String(64),
+        ForeignKey("sop_versions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    project_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    # Original filename from the client's filesystem (for display only).
+    original_filename: Mapped[str] = mapped_column(String(512), nullable=False)
+    # UUID-based stored filename to avoid path-traversal and collisions.
+    stored_filename: Mapped[str] = mapped_column(String(512), nullable=False)
+    file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Extracted by VideoService; NULL when extraction is pending or failed.
+    duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    fps: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Lifecycle: pending → processing → ready | failed
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="ready")
+    uploaded_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    uploaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 # ────────────────────────────────────────────────────────────────────────────

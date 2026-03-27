@@ -447,3 +447,80 @@ class AuditLogEntry(BaseModel):
     description: str
     old_value: dict[str, Any] | None = None
     new_value: dict[str, Any] | None = None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Video Upload — Phase 5 Vision Engine
+# ─────────────────────────────────────────────────────────────────────────────
+
+class VideoUploadStatus(str, Enum):
+    pending = "pending"
+    processing = "processing"
+    ready = "ready"
+    failed = "failed"
+    analyzed = "analyzed"
+
+
+class VideoUploadOut(BaseModel):
+    """Read-only representation of a ``VideoUpload`` record returned by the API."""
+
+    id: str
+    sop_version_id: str
+    project_id: str
+    original_filename: str
+    stored_filename: str
+    file_size: int | None = None
+    duration_seconds: float | None = None
+    width: int | None = None
+    height: int | None = None
+    fps: float | None = None
+    status: VideoUploadStatus
+    uploaded_by: str | None = None
+    uploaded_at: datetime | None = None
+    error_message: str | None = None
+
+
+class SopActionTimestampPatch(BaseModel):
+    """Payload for updating the video-anchor timestamps of a single SOP action."""
+
+    action_id: str
+    video_timestamp_start: float | None = None
+    video_timestamp_end: float | None = None
+
+
+class BulkTimestampUpdateRequest(BaseModel):
+    """Batch update of video timestamps across multiple actions in one SOP version."""
+
+    sop_version_id: str
+    patches: list[SopActionTimestampPatch]
+
+
+class VisionDetectedAction(BaseModel):
+    """A single SOP action synthesised by the Vision Engine's heuristic classifier."""
+
+    action_id: str
+    description: str
+    seq_type: str
+    tmu: int
+    seconds: float
+    primary_action: str
+    hand: str
+    object_category: str | None = None
+    glove_type: str | None = None
+    component: str | None = None
+    precautions: list[str] = Field(default_factory=list)
+    video_timestamp_start: float
+    video_timestamp_end: float
+    confidence: float = Field(ge=0.0, le=1.0)
+
+
+class VisionAnalysisResponse(BaseModel):
+    """Full result returned by ``POST /api/v1/video/analyze/{upload_id}``."""
+
+    upload_id: str
+    sop_version_id: str
+    detected_actions: list[VisionDetectedAction]
+    total_active_segments: int
+    total_idle_segments: int
+    analysis_engine: str
+    appended_action_count: int

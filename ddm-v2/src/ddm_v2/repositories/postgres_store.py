@@ -50,6 +50,7 @@ from ddm_v2.models.domain import (
     ToLocationRow,
     ToolLibraryRow,
     UserRow,
+    VideoUploadRow,
 )
 from ddm_v2.schemas import AuditAction
 
@@ -113,6 +114,9 @@ def _sop_action_to_dict(row: SopActionRow) -> dict[str, Any]:
         "required_skill": row.required_skill,
         "precautions": row.precautions if row.precautions is not None else [],
         "equipment_params": row.equipment_params,
+        # Vision-engine timestamp anchors (None until analysis has been run)
+        "video_timestamp_start": row.video_timestamp_start,
+        "video_timestamp_end": row.video_timestamp_end,
     }
 
 
@@ -702,3 +706,128 @@ class PostgresStore:
             await self._upsert_sop_version(version)  # type: ignore[arg-type]
 
         await self._session.flush()
+
+    # -----------------------------------------------------------------------
+    # Video Uploads — Phase 5 Vision Engine
+    # -----------------------------------------------------------------------
+
+    def _video_upload_to_dict(self, row: VideoUploadRow) -> dict[str, Any]:
+        return {
+            "id": row.id,
+            "sop_version_id": row.sop_version_id,
+            "project_id": row.project_id,
+            "original_filename": row.original_filename,
+            "stored_filename": row.stored_filename,
+            "file_size": row.file_size,
+            "duration_seconds": row.duration_seconds,
+            "width": row.width,
+            "height": row.height,
+            "fps": row.fps,
+            "status": row.status,
+            "uploaded_by": row.uploaded_by,
+            "uploaded_at": row.uploaded_at.isoformat() if row.uploaded_at else None,
+            "error_message": row.error_message,
+        }
+
+    async def create_video_upload(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Persist a new ``VideoUploadRow`` from *data* (as returned by
+        ``VideoService.save_and_record``) and return the resulting dict.
+        """
+        row = VideoUploadRow(
+            id=data["id"],
+            sop_version_id=data["sop_version_id"],
+            project_id=data["project_id"],
+            original_filename=data["original_filename"],
+            stored_filename=data["stored_filename"],
+            file_size=data.get("file_size"),
+            duration_seconds=data.get("duration_seconds"),
+            width=data.get("width"),
+            height=data.get("height"),
+            fps=data.get("fps"),
+            status=data.get("status", "ready"),
+            uploaded_by=data.get("uploaded_by"),
+            uploaded_at=_parse_dt(data.get("uploaded_at")),
+            error_message=data.get("error_message"),
+        )
+        self._session.add(row)
+        await self._session.flush()
+        return self._video_upload_to_dict(row)
+
+    async def get_video_upload(self, upload_id: str) -> dict[str, Any] | None:
+        result = await self._session.execute(
+            select(VideoUploadRow).where(VideoUploadRow.id == upload_id)
+        )
+        row = result.scalar_one_or_none()
+        return self._video_upload_to_dict(row) if row else None
+
+    async def list_video_uploads(self, sop_version_id: str) -> list[dict[str, Any]]:
+        result = await self._session.execute(
+            select(VideoUploadRow)
+            .where(VideoUploadRow.sop_version_id == sop_version_id)
+            .order_by(VideoUploadRow.uploaded_at)
+        )
+        return [self._video_upload_to_dict(r) for r in result.scalars().all()]
+
+    async def delete_video_upload(self, upload_id: str) -> bool:
+        """Delete the DB record.  Returns True if a row was deleted."""
+        result = await self._session.execute(
+            select(VideoUploadRow).where(VideoUploadRow.id == upload_id)
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            return False
+        await self._session.delete(row)
+        await self._session.flush()
+        return True
+
+    async def update_video_upload_status(
+        self,
+        upload_id: str,
+        status: str,
+        error_message: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Update the lifecycle ``status`` (and optionally ``error_message``) on a
+        ``VideoUploadRow``.  Returns the updated dict or ``None`` when not found.
+        """
+        result = await self._session.execute(
+            select(VideoUploadRow).where(VideoUploadRow.id == upload_id)
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            return None
+        row.status = status
+        if error_message is not None:
+            row.error_message = error_message
+        await self._session.flush()
+        return self._video_upload_to_dict(row)
+
+    async def update_sop_action_timestamps(
+        self, patches: list[dict[str, Any]]
+    ) -> int:
+        """Bulk-update ``video_timestamp_start`` / ``video_timestamp_end`` on
+        ``SopAction`` rows from *patches*.
+
+        Each patch dict must contain ``action_id`` and optionally
+        ``video_timestamp_start`` / ``video_timestamp_end``.
+
+        Returns the count of rows that were actually updated.
+        """
+        updated = 0
+        for patch in patches:
+            action_id = patch.get("action_id")
+            if not action_id:
+                continue
+            result = await self._session.execute(
+                select(SopActionRow).where(SopActionRow.id == action_id)
+            )
+            row = result.scalar_one_or_none()
+            if row is None:
+                continue
+            if "video_timestamp_start" in patch:
+                row.video_timestamp_start = patch["video_timestamp_start"]
+            if "video_timestamp_end" in patch:
+                row.video_timestamp_end = patch["video_timestamp_end"]
+            updated += 1
+        if updated:
+            await self._session.flush()
+        return updated
