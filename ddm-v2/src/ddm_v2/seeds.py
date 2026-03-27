@@ -245,3 +245,317 @@ DEFAULT_STATE = {
 
 def build_default_state() -> dict:
     return deepcopy(DEFAULT_STATE)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Phase 10: Ultimate Demo Seed — "Project Alpha: Smart Speaker Assembly"
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Station IDs used by the demo orchestrator (must stay in sync with
+# scripts/demo_orchestrator.py).
+ALPHA_STATIONS: list[dict] = [
+    {"id": "ALPHA-ST-1",  "name": "ST-1  Chassis Prep",                "employee_id": "emp-alpha-b", "1p2m": False},
+    {"id": "ALPHA-ST-2a", "name": "ST-2A Driver Install [1P2M · A]",   "employee_id": "emp-alpha-a", "1p2m": True},
+    {"id": "ALPHA-ST-2b", "name": "ST-2B Driver Install [1P2M · B]",   "employee_id": "emp-alpha-a", "1p2m": True},
+    {"id": "ALPHA-ST-3",  "name": "ST-3  PCB & Audio Module (CTQ)",     "employee_id": "emp-alpha-a", "1p2m": False},
+    {"id": "ALPHA-ST-4",  "name": "ST-4  Cable Routing",                "employee_id": "emp-alpha-b", "1p2m": False},
+    {"id": "ALPHA-ST-5",  "name": "ST-5  Final QA & Barcode Scan",      "employee_id": "emp-alpha-b", "1p2m": False},
+]
+
+
+async def seed_ultimate_demo(session: "AsyncSession") -> dict:  # type: ignore[name-defined]
+    """Insert 'Project Alpha: Smart Speaker Assembly' showcase demo data.
+
+    Idempotent: if the project already exists the function returns immediately
+    without modifying any rows, making ``make demo`` safe to re-run.
+
+    Returns a summary dict with inserted record counts.
+    """
+    import random
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import select
+
+    from ddm_v2.models.domain import (
+        EmployeeRow,
+        LevelEntryRow,
+        ProjectRow,
+        SimulationResultRow,
+        SopActionRow,
+        SopVersionRow,
+        StationRow,
+        VideoUploadRow,
+    )
+
+    _UTC = timezone.utc
+
+    # ── Idempotency guard ────────────────────────────────────────────────────
+    existing = (
+        await session.execute(select(ProjectRow).where(ProjectRow.id == "proj-alpha"))
+    ).scalar_one_or_none()
+    if existing is not None:
+        return {"skipped": True, "reason": "Project Alpha already seeded"}
+
+    now = datetime.now(_UTC)
+
+    # ── Project ──────────────────────────────────────────────────────────────
+    session.add(ProjectRow(
+        id="proj-alpha",
+        name="Smart Speaker Assembly",
+        sku="SSA-X2026",
+        version="2.0",
+        process_type="BASY",
+        factory="SQT",
+    ))
+
+    # ── Demo employees ────────────────────────────────────────────────────────
+    session.add(EmployeeRow(
+        id="emp-alpha-a", name="Alex Chen", station_type="Assembly",
+        skill_level="Expert", efficiency_factor=1.15,
+        certifications=["FATP01", "FATP07", "FATP09"],
+    ))
+    session.add(EmployeeRow(
+        id="emp-alpha-b", name="Blake Park", station_type="Assembly",
+        skill_level="Proficient", efficiency_factor=1.0,
+        certifications=["FATP01", "FATP03"],
+    ))
+
+    # ── 6 stations (including 1P2M pair) ─────────────────────────────────────
+    for st in ALPHA_STATIONS:
+        session.add(StationRow(id=st["id"], name=st["name"], employee_id=st["employee_id"]))
+
+    await session.flush()
+
+    # ── SOP Version V1.0 (Published) ─────────────────────────────────────────
+    sop_v1_id = "sop-alpha-v1"
+    session.add(SopVersionRow(
+        id=sop_v1_id, project_id="proj-alpha", version_no="V1.0",
+        status="Published",
+        created_by="usr-eng-1",       created_at=now - timedelta(days=45),
+        reviewed_by="usr-admin",      reviewed_at=now - timedelta(days=40),
+        published_by="usr-admin",     published_at=now - timedelta(days=38),
+    ))
+    await session.flush()
+
+    # ── Actions for V1.0 ─────────────────────────────────────────────────────
+    # Columns: (id, sort_idx, station_id, seq_type, description,
+    #           tmu, component, tool, is_ctq, frequency,
+    #           object_category, glove_type, required_skill, equipment_params)
+    _TMU_F = 0.036
+    _ACTIONS_V1: list[tuple] = [
+        # Station 1 — Chassis Prep (1P1M)
+        ("alpha-act-01", 0,  "ALPHA-ST-1", "GENERAL",    "Grab Chassis from component bin",
+         40,  "Chassis",        None,              False, 1, "機殼",       "一般作業手套",    None,      None),
+        ("alpha-act-02", 1,  "ALPHA-ST-1", "GENERAL",    "Place Chassis on assembly fixture",
+         50,  "Chassis",        None,              False, 1, "機殼",       "一般作業手套",    None,      None),
+        ("alpha-act-03", 2,  "ALPHA-ST-1", "GENERAL",    "Inspect Chassis alignment and orientation",
+         24,  None,             None,              False, 1, None,        "General Glove",  None,      None),
+        # Station 2A — Driver Install Machine A (1P2M)
+        ("alpha-act-04", 3,  "ALPHA-ST-2a", "GENERAL",   "Grab Speaker Driver Unit ×2",
+         80,  "Speaker Driver", None,              True,  2, "高單價物料", "兩只半指手套",    None,      None),
+        ("alpha-act-05", 4,  "ALPHA-ST-2a", "GENERAL",   "Place Speaker Driver into enclosure",
+         50,  "Speaker Driver", None,              True,  1, "高單價物料", "兩只半指手套",    None,      None),
+        ("alpha-act-06", 5,  "ALPHA-ST-2a", "CONTROLLED", "Fasten Speaker Driver M3×4 screws (CTQ)",
+         72,  "Screw",          "Torque Driver",   True,  4, "Fastener",  "Finger Cot",     None,
+         {"torque_spec_nm": 0.6, "bit_type": "PH1"}),
+        # Station 2B — Driver Install Machine B (1P2M — parallel with 2A)
+        ("alpha-act-07", 6,  "ALPHA-ST-2b", "GENERAL",   "Grab Speaker Driver Unit ×2",
+         80,  "Speaker Driver", None,              True,  2, "高單價物料", "兩只半指手套",    None,      None),
+        ("alpha-act-08", 7,  "ALPHA-ST-2b", "GENERAL",   "Place Speaker Driver into enclosure",
+         50,  "Speaker Driver", None,              True,  1, "高單價物料", "兩只半指手套",    None,      None),
+        ("alpha-act-09", 8,  "ALPHA-ST-2b", "CONTROLLED", "Fasten Speaker Driver M3×4 screws (CTQ)",
+         72,  "Screw",          "Torque Driver",   True,  4, "Fastener",  "Finger Cot",     None,
+         {"torque_spec_nm": 0.6, "bit_type": "PH1"}),
+        # Station 3 — PCB & Audio Module (CTQ + ESD + skill gate)
+        ("alpha-act-10", 9,  "ALPHA-ST-3", "GENERAL",    "Grab PCB Audio Module (ion fan ON, anti-static)",
+         40,  "Motherboard",    None,              True,  1, "PCB",       "兩只半指手套",    "FATP07",  None),
+        ("alpha-act-11", 10, "ALPHA-ST-3", "GENERAL",    "Seat PCB into chassis ZIF connector",
+         50,  "Motherboard",    None,              True,  1, "PCB",       "兩只半指手套",    "FATP07",  None),
+        ("alpha-act-12", 11, "ALPHA-ST-3", "GENERAL",    "Scan PCB barcode for traceability",
+         10,  "Label",          "Barcode Scanner", False, 1, "Label",     "General Glove",  None,      None),
+        # Station 4 — Cable Routing
+        ("alpha-act-13", 12, "ALPHA-ST-4", "GENERAL",    "Grab cable harness from component bin",
+         40,  "Cable",          None,              False, 1, "線材",       "左手半指+右手指套", None,   None),
+        ("alpha-act-14", 13, "ALPHA-ST-4", "GENERAL",    "Route cable through chassis guide clips",
+         60,  "Cable",          None,              False, 1, "線材",       "左手半指+右手指套", None,   None),
+        # Station 5 — Final QA & Barcode Scan
+        ("alpha-act-15", 14, "ALPHA-ST-5", "GENERAL",    "Inspect completed assembly (visual & tactile)",
+         24,  None,             None,              False, 1, None,        "General Glove",  None,      None),
+        ("alpha-act-16", 15, "ALPHA-ST-5", "GENERAL",    "Scan finished product RFID label",
+         10,  "Label",          "Barcode Scanner", False, 1, "Label",     "General Glove",  None,      None),
+    ]
+
+    for (aid, sidx, stn, stype, desc, tmu, comp, tool,
+         ctq, freq, obj_cat, glove, req_skill, eq_params) in _ACTIONS_V1:
+        session.add(SopActionRow(
+            id=aid, sop_version_id=sop_v1_id, sort_idx=sidx,
+            seq_type=stype, description=desc,
+            tmu=tmu, seconds=round(tmu * _TMU_F, 2),
+            params={}, precautions=[],
+            station_id=stn, component=comp, tool=tool,
+            is_ctq=ctq, frequency=freq,
+            object_category=obj_cat, glove_type=glove,
+            required_skill=req_skill, equipment_params=eq_params,
+            is_simo=False,
+            # Vision-engine anchors — pre-linked to the historical video
+            video_timestamp_start=round(sidx * 20.5, 1),
+            video_timestamp_end=round(sidx * 20.5 + tmu * _TMU_F * 1.8, 1),
+        ))
+
+    # ── SOP Version V2.0 (Under Review — streamlined 1P2M actions) ───────────
+    sop_v2_id = "sop-alpha-v2"
+    session.add(SopVersionRow(
+        id=sop_v2_id, project_id="proj-alpha", version_no="V2.0",
+        status="UnderReview",
+        created_by="usr-eng-1", created_at=now - timedelta(days=10),
+        reviewed_by=None, reviewed_at=None,
+        published_by=None, published_at=None,
+    ))
+    await session.flush()
+
+    # V2.0 combines the driver-grab into a single SIMO step (3 fewer actions)
+    _ACTIONS_V2: list[tuple] = [
+        ("alpha-v2-act-01", 0,  "ALPHA-ST-1",  "GENERAL",    "Grab & Place Chassis on fixture",
+         90,  "Chassis",        None,           False, 1, "機殼",       "一般作業手套",    None,      None),
+        ("alpha-v2-act-02", 1,  "ALPHA-ST-2a", "GENERAL",    "SIMO: Both drivers loaded simultaneously",
+         130, "Speaker Driver", None,           True,  2, "高單價物料", "兩只半指手套",    None,      None),
+        ("alpha-v2-act-03", 2,  "ALPHA-ST-2a", "CONTROLLED", "Fasten both enclosures ×4 each (1P2M CTQ)",
+         144, "Screw",          "Torque Driver",True,  8, "Fastener",  "Finger Cot",     None,
+         {"torque_spec_nm": 0.6, "bit_type": "PH1"}),
+        ("alpha-v2-act-04", 3,  "ALPHA-ST-3",  "GENERAL",    "Grab & Seat PCB (ion fan ON)",
+         90,  "Motherboard",    None,           True,  1, "PCB",       "兩只半指手套",    "FATP07",  None),
+        ("alpha-v2-act-05", 4,  "ALPHA-ST-3",  "GENERAL",    "Scan PCB barcode",
+         10,  "Label",          "Barcode Scanner",False,1, "Label",     "General Glove",  None,      None),
+        ("alpha-v2-act-06", 5,  "ALPHA-ST-4",  "GENERAL",    "Route cable harness",
+         100, "Cable",          None,           False, 1, "線材",       "左手半指+右手指套", None,   None),
+        ("alpha-v2-act-07", 6,  "ALPHA-ST-5",  "GENERAL",    "Final inspect & RFID scan",
+         34,  "Label",          "Barcode Scanner",False,1, "Label",     "General Glove",  None,      None),
+    ]
+    for (aid, sidx, stn, stype, desc, tmu, comp, tool,
+         ctq, freq, obj_cat, glove, req_skill, eq_params) in _ACTIONS_V2:
+        session.add(SopActionRow(
+            id=aid, sop_version_id=sop_v2_id, sort_idx=sidx,
+            seq_type=stype, description=desc,
+            tmu=tmu, seconds=round(tmu * _TMU_F, 2),
+            params={}, precautions=[],
+            station_id=stn, component=comp, tool=tool,
+            is_ctq=ctq, frequency=freq,
+            object_category=obj_cat, glove_type=glove,
+            required_skill=req_skill, equipment_params=eq_params,
+            is_simo=(sidx == 1),
+        ))
+
+    # ── Historical video upload (pre-linked to V1.0) ─────────────────────────
+    session.add(VideoUploadRow(
+        id="vid-alpha-001",
+        sop_version_id=sop_v1_id,
+        project_id="proj-alpha",
+        original_filename="line_b_station2_assembly_2026-02-14.mp4",
+        stored_filename="vid-alpha-001.mp4",
+        file_size=1_247_832_064,       # ~1.16 GB
+        duration_seconds=340.5,
+        width=1920, height=1080, fps=30.0,
+        status="ready",
+        uploaded_by="usr-eng-1",
+        uploaded_at=now - timedelta(days=41),
+    ))
+
+    # ── 100+ Simulation Results (30 days of line-balance history) ─────────────
+    rng = random.Random(42)   # deterministic so re-runs produce the same data
+    _ST_IDS = [s["id"] for s in ALPHA_STATIONS]
+    _BASE_TMUS = {
+        "ALPHA-ST-1":  114,
+        "ALPHA-ST-2a": 202,
+        "ALPHA-ST-2b": 202,
+        "ALPHA-ST-3":  245,   # natural bottleneck
+        "ALPHA-ST-4":  100,
+        "ALPHA-ST-5":   34,
+    }
+    _sim_count = 0
+    for day_offset in range(30, 0, -1):
+        runs_today = rng.randint(3, 4)
+        for run_idx in range(runs_today):
+            # Gradual improvement arc: efficiency rises from ~72 % to ~93 % over 30 days
+            base_eff = 72.0 + (30 - day_offset) * 0.72 + rng.gauss(0, 3.5)
+            eff = max(62.0, min(96.5, base_eff))
+
+            st_tmus = {
+                sid: max(20, round(rng.gauss(_BASE_TMUS[sid], _BASE_TMUS[sid] * 0.06)))
+                for sid in _ST_IDS
+            }
+            bottleneck = max(st_tmus, key=lambda k: st_tmus[k])
+            takt_s = round(st_tmus[bottleneck] * _TMU_F * (100 / eff), 2)
+            run_ts = (now - timedelta(days=day_offset, hours=run_idx * 2)).isoformat()
+
+            station_results = [
+                {
+                    "station_id": sid,
+                    "station_name": next(s["name"] for s in ALPHA_STATIONS if s["id"] == sid),
+                    "total_tmu": st_tmus[sid],
+                    "operator_count": 1,
+                    "machine_count": 2 if "ST-2" in sid else 1,
+                    "efficiency_factor": round(rng.uniform(0.88, 1.12), 2),
+                    "is_1p2m": "ST-2" in sid,
+                }
+                for sid in _ST_IDS
+            ]
+
+            sim_id = f"simr-alpha-{day_offset:02d}-{run_idx}"
+            session.add(SimulationResultRow(
+                id=sim_id,
+                project_id="proj-alpha",
+                timestamp=run_ts,
+                created_by="usr-eng-1",
+                data={
+                    "station_results": station_results,
+                    "summary": {
+                        "total_tmu": sum(st_tmus.values()),
+                        "takt_time_seconds": takt_s,
+                        "line_efficiency_pct": round(eff, 1),
+                        "bottleneck_station": bottleneck,
+                        "operator_count": 5,
+                        "configuration": "1P2M at ST-2A/ST-2B",
+                        "sop_version": "V1.0",
+                    },
+                },
+            ))
+            _sim_count += 1
+
+    # ── Level Entries for all V1.0 actions ────────────────────────────────────
+    scope_key = f"proj-alpha::sop-alpha-v1"
+    for i, (aid, sidx, stn, *_rest) in enumerate(_ACTIONS_V1):
+        session.add(LevelEntryRow(
+            id=f"le-alpha-{i:02d}",
+            scope_key=scope_key,
+            action_id=aid,
+            difficulty_factor=round(1.0 + (i % 3) * 0.1, 1),
+            main_seq="MAIN",
+            order_seq=str(i + 1),
+            machine_count=2 if "ST-2" in stn else 1,
+            operator_count=1,
+            sort_order=i,
+        ))
+
+    await session.flush()
+
+    return {
+        "skipped": False,
+        "inserted": {
+            "project": 1,
+            "employees": 2,
+            "stations": len(ALPHA_STATIONS),
+            "sop_versions": 2,
+            "actions_v1": len(_ACTIONS_V1),
+            "actions_v2": len(_ACTIONS_V2),
+            "video_uploads": 1,
+            "simulation_results": _sim_count,
+            "level_entries": len(_ACTIONS_V1),
+        },
+    }
+
+
+# TYPE_CHECKING import kept at module scope to avoid a hard runtime dependency
+# on SQLAlchemy in contexts where it may not be installed.
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
