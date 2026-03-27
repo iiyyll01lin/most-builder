@@ -47,7 +47,12 @@ class Settings:
     # Scheme must be ``postgresql+asyncpg://`` for production or
     # ``sqlite+aiosqlite://`` for lightweight test runs.
     database_url: str
-
+    # ── Phase 5: Vision Engine ───────────────────────────────────────────────
+    # Directory where uploaded workstation videos are persisted on disk.
+    # Defaults to ``<data_dir>/videos/``.  Must be writable by the process.
+    video_upload_dir: Path    # ── Phase 6: Celery / Redis task queue ─────────────────────────────────────
+    celery_broker_url: str
+    celery_result_backend: str
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
@@ -55,11 +60,15 @@ def get_settings() -> Settings:
     data_dir = _resolve_path(os.getenv("DDM_DATA_DIR"), root_dir / "data", root_dir)
     static_dir = _resolve_path(os.getenv("DDM_STATIC_DIR"), root_dir / "src" / "ddm_v2" / "static", root_dir)
     db_path = _resolve_path(os.getenv("DDM_DB_PATH"), data_dir / "runtime-db.json", root_dir)
+    video_upload_dir = _resolve_path(
+        os.getenv("DDM_VIDEO_UPLOAD_DIR"), data_dir / "videos", root_dir
+    )
     return Settings(
         root_dir=root_dir,
         data_dir=data_dir,
         static_dir=static_dir,
         db_path=db_path,
+        video_upload_dir=video_upload_dir,
         app_name=os.getenv("DDM_APP_NAME", "DDM v2"),
         app_version=os.getenv("DDM_APP_VERSION", "2.0.0-rc1"),
         secret_key=os.getenv("DDM_SECRET_KEY", "ddm-v2-release-candidate-202603-rc1-secure-key"),
@@ -73,7 +82,13 @@ def get_settings() -> Settings:
             "DDM_DATABASE_URL",
             "postgresql+asyncpg://ddm:ddm_secret@localhost:5432/ddm",
         ),
+        celery_broker_url=os.getenv("DDM_CELERY_BROKER_URL", "redis://localhost:6379/0"),
+        celery_result_backend=os.getenv("DDM_CELERY_RESULT_BACKEND", "redis://localhost:6379/1"),
     )
+
+
+# Convenience alias so other modules can do: from ddm_v2.settings import VIDEO_UPLOAD_DIR
+VIDEO_UPLOAD_DIR = get_settings().video_upload_dir
 
 
 ROOT_DIR = get_settings().root_dir

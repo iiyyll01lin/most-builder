@@ -29,7 +29,19 @@ services:
     networks:
       - app_net
     restart: "no"
-
+  # ── Redis 7 (Celery broker for E2E tests) ───────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ddm-v2-redis-test
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - app_net
+    restart: "no"
   # ── FastAPI backend ──────────────────────────────────────────────────────────
   backend:
     build:
@@ -57,6 +69,8 @@ services:
       DDM_CORS_ALLOW_METHODS: "GET,POST,PUT,DELETE"
       DDM_CORS_ALLOW_HEADERS: "Authorization,Content-Type"
       DDM_CORS_ALLOW_CREDENTIALS: "true"
+      DDM_CELERY_BROKER_URL: redis://redis:6379/0
+      DDM_CELERY_RESULT_BACKEND: redis://redis:6379/1
     volumes:
       - e2e_data:/app/data
     healthcheck:
@@ -68,6 +82,8 @@ services:
       retries: 6
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - app_net

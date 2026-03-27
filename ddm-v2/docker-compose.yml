@@ -22,7 +22,19 @@ services:
       start_period: 10s
     networks:
       - ddm_net
-
+  # ── Redis 7 (Celery message broker) ─────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: ddm-v2-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - ddm_net
   ddm-v2:
     build:
       context: .
@@ -52,6 +64,41 @@ services:
       - ddm-v2-data:/app/data
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ddm_net
+
+  # ── Celery Worker (Deep Learning CV Pipeline) ────────────────────────────────────────
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+        http_proxy: ${http_proxy:-}
+        https_proxy: ${https_proxy:-}
+        no_proxy: ${no_proxy:-}
+    image: ddm-v2:202603-rc1
+    container_name: ddm-v2-celery-worker
+    restart: unless-stopped
+    command: celery -A src.ddm_v2.core.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      DDM_ROOT_DIR: /app
+      DDM_DATA_DIR: /app/data
+      DDM_DATABASE_URL: postgresql+asyncpg://ddm:ddm_secret@postgres:5432/ddm
+      DDM_CELERY_BROKER_URL: redis://redis:6379/0
+      DDM_CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DDM_SECRET_KEY: ${DDM_SECRET_KEY:-ddm-v2-release-candidate-202603-rc1-secure-key}
+    volumes:
+      - ddm-v2-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - ddm_net
